@@ -44,15 +44,24 @@ export async function POST(request: NextRequest) {
       '@/lib/db/orders'
     );
     const { generateOrderCode } = await import('@/lib/geo');
+    const { upsertProfile } = await import('@/lib/db/profiles');
+
+    const profile = await upsertProfile({
+      name,
+      phone,
+      region: region ?? 'mukho',
+    });
 
     const order = await updateOrderPayment(merchantUid, {
       payment_status: 'paid',
       imp_uid: impUid,
+      profile_id: profile.id,
     });
 
     if (order) {
       await addParticipant({
         product_id: productId,
+        profile_id: profile.id,
         display_name: name.slice(0, 1) + '**',
         order_code: order.order_code,
       });
@@ -62,6 +71,7 @@ export async function POST(request: NextRequest) {
       const orderCode = generateOrderCode();
       await saveOrder({
         order_code: orderCode,
+        profile_id: profile.id,
         product_id: productId,
         product_name: productName,
         participant_name: name,
@@ -74,6 +84,7 @@ export async function POST(request: NextRequest) {
       });
       await addParticipant({
         product_id: productId,
+        profile_id: profile.id,
         display_name: name.slice(0, 1) + '**',
         order_code: orderCode,
       });
@@ -93,12 +104,14 @@ export async function PUT(request: NextRequest) {
     const { saveOrder } = await import('@/lib/db/orders');
     const { generateOrderCode, perPersonCharge } = await import('@/lib/geo');
     const { getProductById } = await import('@/lib/regions');
+    const { upsertProfile } = await import('@/lib/db/profiles');
 
-    const { productId, name, phone, region = 'mukho' } = body as {
+    const { productId, name, phone, region = 'mukho', profileId } = body as {
       productId?: string;
       name?: string;
       phone?: string;
       region?: string;
+      profileId?: string;
     };
 
     if (!productId || !name || !phone) {
@@ -117,8 +130,15 @@ export async function PUT(request: NextRequest) {
     const merchantUid = `order_${crypto.randomUUID()}`;
     const orderCode = generateOrderCode();
 
+    let resolvedProfileId = profileId;
+    if (!resolvedProfileId) {
+      const profile = await upsertProfile({ name, phone, region });
+      resolvedProfileId = profile.id;
+    }
+
     await saveOrder({
       order_code: orderCode,
+      profile_id: resolvedProfileId,
       product_id: productId,
       product_name: product.name,
       participant_name: name,

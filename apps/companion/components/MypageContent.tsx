@@ -13,7 +13,7 @@ type Props = {
 };
 
 export function MypageContent({ initialOrders = [] }: Props) {
-  const { profile, ready, updateProfile } = useUserProfile();
+  const { profile, ready, loading, login } = useUserProfile();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [orders, setOrders] = useState<OrderRecord[]>(initialOrders);
@@ -29,21 +29,21 @@ export function MypageContent({ initialOrders = [] }: Props) {
   }, [profile]);
 
   useEffect(() => {
-    if (!profile?.phone) return;
+    if (!profile?.id) return;
 
     setLoadingOrders(true);
-    fetch(`/api/orders/mine?phone=${encodeURIComponent(profile.phone)}`)
+    fetch(`/api/orders/mine?profileId=${encodeURIComponent(profile.id)}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.orders) setOrders(data.orders);
       })
       .finally(() => setLoadingOrders(false));
-  }, [profile?.phone]);
+  }, [profile?.id]);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) return;
-    updateProfile({ name: name.trim(), phone: phone.trim(), region: DEFAULT_REGION_CODE });
+    await login(name.trim(), phone.trim(), DEFAULT_REGION_CODE);
   }
 
   if (!ready) {
@@ -82,9 +82,10 @@ export function MypageContent({ initialOrders = [] }: Props) {
         </label>
         <button
           type="submit"
-          className="h-12 rounded-2xl bg-primary text-base font-semibold text-primary-foreground"
+          disabled={loading}
+          className="flex h-12 items-center justify-center rounded-2xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-70"
         >
-          확인하기
+          {loading ? <Loader2 className="size-5 animate-spin" /> : '확인하기'}
         </button>
       </form>
     );

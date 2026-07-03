@@ -1,8 +1,10 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { normalizePhone } from '@/lib/user-profile';
 
 export type OrderRecord = {
   id: string;
   order_code: string;
+  profile_id?: string | null;
   product_id: string;
   product_name: string;
   participant_name: string;
@@ -17,37 +19,19 @@ export type OrderRecord = {
 
 export type ParticipantRecord = {
   id: string;
+  profile_id?: string | null;
   product_id: string;
   display_name: string;
   order_code: string;
   created_at: string;
 };
 
-let supabaseAdmin: SupabaseClient | null = null;
-
-export function getSupabaseAdmin(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  if (!supabaseAdmin) {
-    supabaseAdmin = createClient(url, key, { auth: { persistSession: false } });
-  }
-  return supabaseAdmin;
-}
-
-export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-  );
-}
-
-/** Supabase 미설정 시 빌드·데모용 인메모리 저장 */
 const memoryOrders: OrderRecord[] = [];
 const memoryParticipants: ParticipantRecord[] = [];
 
-export async function saveOrder(order: Omit<OrderRecord, 'id' | 'created_at'>): Promise<OrderRecord> {
+export async function saveOrder(
+  order: Omit<OrderRecord, 'id' | 'created_at'>,
+): Promise<OrderRecord> {
   const supabase = getSupabaseAdmin();
   const row = {
     ...order,
@@ -67,7 +51,7 @@ export async function saveOrder(order: Omit<OrderRecord, 'id' | 'created_at'>): 
 
 export async function updateOrderPayment(
   merchantUid: string,
-  patch: Partial<Pick<OrderRecord, 'payment_status' | 'imp_uid'>>,
+  patch: Partial<Pick<OrderRecord, 'payment_status' | 'imp_uid' | 'profile_id'>>,
 ): Promise<OrderRecord | null> {
   const supabase = getSupabaseAdmin();
 
@@ -102,9 +86,23 @@ export async function listOrders(): Promise<OrderRecord[]> {
 }
 
 export async function listOrdersByPhone(phone: string): Promise<OrderRecord[]> {
-  const normalized = phone.replace(/\D/g, '');
+  const normalized = normalizePhone(phone);
   const orders = await listOrders();
-  return orders.filter((o) => o.participant_phone.replace(/\D/g, '') === normalized);
+  return orders.filter((o) => normalizePhone(o.participant_phone) === normalized);
+}
+
+export async function listOrdersByProfileId(profileId: string): Promise<OrderRecord[]> {
+  const supabase = getSupabaseAdmin();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('profile_id', profileId)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as OrderRecord[];
+  }
+  return memoryOrders.filter((o) => o.profile_id === profileId);
 }
 
 export async function addParticipant(
@@ -153,8 +151,8 @@ export async function incrementProductCount(productId: string): Promise<void> {
 
   if (!product) return;
 
-  const nextCount = (product.current_count ?? 0) + 1;
-  const status = nextCount >= product.target_count ? 'success' : 'open';
+  const nextCount = (product.current_count as number) + 1;
+  const status = nextCount >= (product.target_count as number) ? 'success' : 'open';
 
   await supabase
     .from('products')

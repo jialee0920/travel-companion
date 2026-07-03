@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Handshake, Heart, MapPin, MessageCircle, X, Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Handshake, Heart, Loader2, MapPin, MessageCircle, X, Zap } from 'lucide-react';
 import type { RegionCompanion } from '@/lib/regions/types';
 import { CATEGORY_LABELS } from '@/lib/regions/types';
 import { formatDistance, temperatureLabel } from '@/lib/geo';
+import { DEFAULT_REGION_CODE } from '@/lib/regions';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { TemperatureRing } from './TemperatureRing';
 
 type Props = {
@@ -15,12 +18,77 @@ type Props = {
 };
 
 export function CompanionDetailSheet({ companion, liveDistanceKm, onClose }: Props) {
+  const router = useRouter();
+  const { profile, login, loading } = useUserProfile();
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [showLogin, setShowLogin] = useState(false);
+  const [starting, setStarting] = useState(false);
+
   useEffect(() => {
     if (!companion) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [companion, onClose]);
+
+  async function handleChatStart() {
+    if (!companion) return;
+
+    if (!profile) {
+      setShowLogin(true);
+      return;
+    }
+
+    setStarting(true);
+    try {
+      const res = await fetch('/api/chat/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          myProfileId: profile.id,
+          companionSeedId: companion.id,
+          region: DEFAULT_REGION_CODE,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? '채팅방 생성 실패');
+      onClose();
+      router.push(`/chat/${data.room.id}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '채팅을 시작할 수 없습니다.');
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function handleLoginAndChat(e: React.FormEvent) {
+    e.preventDefault();
+    if (!companion || !name.trim() || !phone.trim()) return;
+
+    try {
+      const loggedIn = await login(name.trim(), phone.trim(), DEFAULT_REGION_CODE);
+      setShowLogin(false);
+      setStarting(true);
+      const res = await fetch('/api/chat/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          myProfileId: loggedIn.id,
+          companionSeedId: companion.id,
+          region: DEFAULT_REGION_CODE,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? '채팅방 생성 실패');
+      onClose();
+      router.push(`/chat/${data.room.id}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '채팅을 시작할 수 없습니다.');
+    } finally {
+      setStarting(false);
+    }
+  }
 
   if (!companion) return null;
 
@@ -35,6 +103,47 @@ export function CompanionDetailSheet({ companion, liveDistanceKm, onClose }: Pro
         onClick={onClose}
         className="absolute inset-0 bg-foreground/40 backdrop-blur-[2px]"
       />
+
+      {showLogin && (
+        <div className="relative z-50 mx-5 mb-4 rounded-2xl border border-border bg-background p-4 shadow-xl">
+          <p className="text-sm font-semibold">채팅을 시작하려면 확인이 필요해요</p>
+          <form onSubmit={handleLoginAndChat} className="mt-3 space-y-2">
+            <input
+              type="text"
+              placeholder="이름"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-xl border border-border px-3 py-2 text-sm"
+              required
+            />
+            <input
+              type="tel"
+              placeholder="연락처"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full rounded-xl border border-border px-3 py-2 text-sm"
+              required
+            />
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowLogin(false)}
+                className="h-10 flex-1 rounded-xl border border-border text-sm"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={loading || starting}
+                className="flex h-10 flex-1 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-70"
+              >
+                {loading || starting ? <Loader2 className="size-4 animate-spin" /> : '시작'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="relative max-h-[86%] overflow-y-auto rounded-t-[2rem] border-t border-border bg-background pb-24 shadow-2xl">
         <div className="sticky top-0 flex justify-center pt-3">
           <span className="h-1.5 w-10 rounded-full bg-border" />
@@ -132,10 +241,18 @@ export function CompanionDetailSheet({ companion, liveDistanceKm, onClose }: Pro
           </button>
           <button
             type="button"
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-primary-foreground"
+            disabled={starting}
+            onClick={handleChatStart}
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-70"
           >
-            <MessageCircle className="size-5" />
-            동행 신청하기
+            {starting ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : (
+              <>
+                <MessageCircle className="size-5" />
+                동행 신청하기
+              </>
+            )}
           </button>
         </div>
       </div>

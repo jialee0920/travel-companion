@@ -60,8 +60,8 @@ export function GroupBuyWidget({ product }: Props) {
     }
   }, [profile]);
 
-  const persistProfile = () => {
-    updateProfile({
+  const persistProfile = async () => {
+    return updateProfile({
       name: name.trim(),
       phone: phone.trim(),
       region: product.region,
@@ -82,9 +82,10 @@ export function GroupBuyWidget({ product }: Props) {
 
     setStatus('loading');
     setMessage('');
-    persistProfile();
 
     try {
+      const savedProfile = await persistProfile();
+
       const prepareRes = await fetch('/api/payments/confirm', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -93,6 +94,7 @@ export function GroupBuyWidget({ product }: Props) {
           name: name.trim(),
           phone: phone.trim(),
           region: product.region,
+          profileId: savedProfile?.id ?? profile?.id,
         }),
       });
       const prepare = await prepareRes.json();
@@ -143,7 +145,7 @@ export function GroupBuyWidget({ product }: Props) {
           }
           setStatus('paid');
           setMessage('결제가 완료되었습니다. 이용권이 발급됩니다.');
-          persistProfile();
+          await persistProfile();
         },
       );
     } catch (err) {

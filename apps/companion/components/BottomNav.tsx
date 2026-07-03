@@ -22,7 +22,7 @@ const TABS: {
   { id: 'map', label: '동행', icon: Home, href: '/' },
   { id: 'group-buy', label: '공동구매', icon: ShoppingBag, href: '/group-buy' },
   { id: 'explore', label: '탐색', icon: Compass, homeOnly: true },
-  { id: 'chat', label: '문의', icon: MessageCircle, href: '/chat' },
+  { id: 'chat', label: '채팅', icon: MessageCircle, href: '/chat' },
   { id: 'profile', label: 'MY', icon: User, href: '/mypage' },
 ];
 
@@ -38,7 +38,7 @@ export function BottomNav({ active, onChange }: Props) {
             isHome && homeOnly
               ? active === id
               : href
-                ? pathname === href
+                ? pathname === href || pathname.startsWith(`${href}/`)
                 : active === id;
           const content = (
             <>
