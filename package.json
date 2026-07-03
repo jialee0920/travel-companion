@@ -1,0 +1,23 @@
+{
+  "name": "travel-companion-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/companion",
+    "packages/*"
+  ],
+  "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "4.1.18",
+    "lightningcss-linux-x64-gnu": "1.30.2"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/companion",
+    "dev:legacy": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/companion",
+    "build:legacy": "npm run build --workspace=apps/web",
+    "test": "npm run test --workspace=apps/web && npm test --prefix $(pwd)/apps/mobile",
+    "test:e2e": "npm run test:e2e --workspace=apps/web",
+    "lint": "npm run lint --workspace=apps/web && npm run lint --prefix $(pwd)/apps/mobile"
+  },
+  "devDependencies": {}
+}
