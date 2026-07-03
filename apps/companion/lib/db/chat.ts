@@ -1,5 +1,11 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import type { ChatMessageRow, ChatRoomRow, ChatRoomWithPeer, ProfileRow } from '@/lib/supabase/types';
+import type {
+  ChatMessageRow,
+  ChatRoomMemberRow,
+  ChatRoomRow,
+  ChatRoomWithPeer,
+  ProfileRow,
+} from '@/lib/supabase/types';
 import { getOrCreateCompanionProfile, getProfileById } from './profiles';
 
 const memoryRooms: ChatRoomRow[] = [];
@@ -11,24 +17,25 @@ async function findExistingRoom(profileA: string, profileB: string): Promise<Cha
   if (supabase) {
     const { data: roomsA } = await supabase
       .from('chat_room_members')
-      .select('room_id')
+      .select('*')
       .eq('profile_id', profileA);
-    const roomIds = (roomsA ?? []).map((r) => r.room_id);
+    const roomIds = ((roomsA ?? []) as ChatRoomMemberRow[]).map((r) => r.room_id);
     if (roomIds.length === 0) return null;
 
     const { data: match } = await supabase
       .from('chat_room_members')
-      .select('room_id')
+      .select('*')
       .eq('profile_id', profileB)
       .in('room_id', roomIds)
       .limit(1)
       .maybeSingle();
 
     if (!match) return null;
+    const matched = match as ChatRoomMemberRow;
     const { data: room } = await supabase
       .from('chat_rooms')
       .select('*')
-      .eq('id', match.room_id)
+      .eq('id', matched.room_id)
       .single();
     return room as ChatRoomRow;
   }
@@ -66,12 +73,13 @@ export async function getOrCreateChatRoom(input: {
       .single();
     if (error) throw new Error(error.message);
 
+    const createdRoom = room as ChatRoomRow;
     const { error: memberError } = await supabase.from('chat_room_members').insert([
-      { room_id: room.id, profile_id: input.myProfileId },
-      { room_id: room.id, profile_id: peerId },
+      { room_id: createdRoom.id, profile_id: input.myProfileId },
+      { room_id: createdRoom.id, profile_id: peerId },
     ]);
     if (memberError) throw new Error(memberError.message);
-    return room as ChatRoomRow;
+    return createdRoom;
   }
 
   const room: ChatRoomRow = {
@@ -92,19 +100,21 @@ export async function listChatRooms(profileId: string): Promise<ChatRoomWithPeer
   if (supabase) {
     const { data: memberships, error } = await supabase
       .from('chat_room_members')
-      .select('room_id')
+      .select('*')
       .eq('profile_id', profileId);
     if (error) throw new Error(error.message);
 
     const results: ChatRoomWithPeer[] = [];
-    for (const { room_id } of memberships ?? []) {
+    for (const { room_id } of (memberships ?? []) as ChatRoomMemberRow[]) {
       const { data: room } = await supabase.from('chat_rooms').select('*').eq('id', room_id).single();
       const { data: members } = await supabase
         .from('chat_room_members')
-        .select('profile_id')
+        .select('*')
         .eq('room_id', room_id);
 
-      const peerId = (members ?? []).map((m) => m.profile_id).find((id) => id !== profileId);
+      const peerId = ((members ?? []) as ChatRoomMemberRow[])
+        .map((m) => m.profile_id)
+        .find((id) => id !== profileId);
       if (!peerId || !room) continue;
 
       const peer = await getProfileById(peerId);
@@ -112,7 +122,7 @@ export async function listChatRooms(profileId: string): Promise<ChatRoomWithPeer
 
       const { data: lastMsg } = await supabase
         .from('chat_messages')
-        .select('body')
+        .select('*')
         .eq('room_id', room_id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -126,7 +136,7 @@ export async function listChatRooms(profileId: string): Promise<ChatRoomWithPeer
           avatar_url: peer.avatar_url,
           companion_seed_id: peer.companion_seed_id,
         },
-        last_message: lastMsg?.body ?? null,
+        last_message: (lastMsg as ChatMessageRow | null)?.body ?? null,
       });
     }
 
@@ -238,9 +248,11 @@ export async function getRoomPeer(roomId: string, myProfileId: string): Promise<
   if (supabase) {
     const { data: members } = await supabase
       .from('chat_room_members')
-      .select('profile_id')
+      .select('*')
       .eq('room_id', roomId);
-    const peerId = (members ?? []).map((m) => m.profile_id).find((id) => id !== myProfileId);
+    const peerId = ((members ?? []) as ChatRoomMemberRow[])
+      .map((m) => m.profile_id)
+      .find((id) => id !== myProfileId);
     if (!peerId) return null;
     return getProfileById(peerId);
   }
