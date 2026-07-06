@@ -4,22 +4,34 @@ export type GeoPosition = {
   accuracy: number;
 };
 
-const USER_GESTURE_OPTIONS: PositionOptions = {
-  enableHighAccuracy: true,
-  maximumAge: 0,
-  timeout: 20_000,
-};
-
 const REFRESH_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
   maximumAge: 10_000,
   timeout: 15_000,
 };
 
+export function isIosDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+export function getPermissionDeniedHelp(): string {
+  if (isIosDevice()) {
+    return [
+      '① Safari 주소창 왼쪽 「aA」→ 「웹사이트 설정」→ 「위치」→ 「허용」',
+      '② 설정 → Safari → 위치 → 「묻기」 또는 「허용」',
+      '③ 한 번 「허용 안 함」을 눌렀다면: 설정 → Safari → 고급 → 웹사이트 데이터 → 이 사이트 삭제 후 다시 시도',
+      '설정 변경 후 이 페이지로 돌아오면 자동으로 다시 시도합니다.',
+    ].join(' ');
+  }
+
+  return '브라우저에서 위치 접근이 차단되었습니다. 주소창 자물쇠 → 위치 → 허용으로 변경해 주세요.';
+}
+
 export function geolocationErrorMessage(err: GeolocationPositionError): string {
   switch (err.code) {
     case err.PERMISSION_DENIED:
-      return '브라우저에서 위치 접근이 차단되었습니다. 주소창 자물쇠 → 위치 → 허용으로 변경해 주세요.';
+      return getPermissionDeniedHelp();
     case err.POSITION_UNAVAILABLE:
       return '현재 위치를 가져올 수 없습니다. GPS 또는 Wi-Fi를 확인해 주세요.';
     case err.TIMEOUT:
@@ -29,7 +41,27 @@ export function geolocationErrorMessage(err: GeolocationPositionError): string {
   }
 }
 
-/** 클릭 직후 호출 — 브라우저 위치 팝업용 (Promise/async 없이 동기 시작) */
+function toGeoPosition(pos: GeolocationPosition): GeoPosition {
+  return {
+    lat: pos.coords.latitude,
+    lng: pos.coords.longitude,
+    accuracy: pos.coords.accuracy,
+  };
+}
+
+function tryGetCurrentPosition(
+  options: PositionOptions,
+  onSuccess: (position: GeoPosition) => void,
+  onError: (err: GeolocationPositionError) => void,
+): void {
+  navigator.geolocation.getCurrentPosition(
+    (pos) => onSuccess(toGeoPosition(pos)),
+    onError,
+    options,
+  );
+}
+
+/** 클릭 직후 호출 — iOS는 고정밀 실패 시 일반 GPS로 재시도 */
 export function requestGeolocationFromUserGesture(
   onSuccess: (position: GeoPosition) => void,
   onError: (message: string) => void,
@@ -46,16 +78,32 @@ export function requestGeolocationFromUserGesture(
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      onSuccess({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        accuracy: pos.coords.accuracy,
-      });
+  const highAccuracy: PositionOptions = {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 20_000,
+  };
+
+  const lowAccuracy: PositionOptions = {
+    enableHighAccuracy: false,
+    maximumAge: 0,
+    timeout: 25_000,
+  };
+
+  tryGetCurrentPosition(
+    highAccuracy,
+    onSuccess,
+    (err) => {
+      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+        tryGetCurrentPosition(
+          lowAccuracy,
+          onSuccess,
+          (retryErr) => onError(geolocationErrorMessage(retryErr)),
+        );
+        return;
+      }
+      onError(geolocationErrorMessage(err));
     },
-    (err) => onError(geolocationErrorMessage(err)),
-    USER_GESTURE_OPTIONS,
   );
 }
 
@@ -65,16 +113,20 @@ export function refreshGeolocation(
 ): void {
   if (typeof navigator === 'undefined' || !navigator.geolocation) return;
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      onSuccess({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        accuracy: pos.coords.accuracy,
-      });
-    },
-    (err) => onError?.(geolocationErrorMessage(err)),
+  tryGetCurrentPosition(
     REFRESH_OPTIONS,
+    onSuccess,
+    (err) => {
+      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+        tryGetCurrentPosition(
+          { enableHighAccuracy: false, maximumAge: 10_000, timeout: 20_000 },
+          onSuccess,
+          (retryErr) => onError?.(geolocationErrorMessage(retryErr)),
+        );
+        return;
+      }
+      onError?.(geolocationErrorMessage(err));
+    },
   );
 }
 
