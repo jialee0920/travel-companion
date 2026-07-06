@@ -18,7 +18,7 @@ import { CompanionCard } from '@/components/CompanionCard';
 import { CompanionDetailSheet } from '@/components/CompanionDetailSheet';
 import { GroupBuySection } from '@/components/GroupBuySection';
 import { BottomNav, type NavTab } from '@/components/BottomNav';
-import { LocationConsentBanner } from '@/components/LocationConsentBanner';
+import { LocationAllowPrompt } from '@/components/LocationAllowPrompt';
 
 const region = getRegion();
 
@@ -27,23 +27,23 @@ type Props = {
 };
 
 export function HomeClient({ products }: Props) {
-  const { consented, accept, decline, ready } = useLocationConsent();
+  const { accept } = useLocationConsent();
   const { profile } = useUserProfile();
   const [tab, setTab] = useState<NavTab>('map');
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const mapOrExplore = tab === 'map' || tab === 'explore';
-  const geoEnabled = consented === true && mapOrExplore;
   const {
     position,
     error: geoError,
     loading: geoLoading,
-    needsUserGesture,
-    requestNow,
-  } = useGeolocation(geoEnabled);
-  const { users: nearbyUsers } = useNearbyUsers(geoEnabled && !!profile?.id);
-  useLocationReporter(position, geoEnabled && !!profile?.id);
+    applyPosition,
+    reportError,
+    startLoading,
+  } = useGeolocation(mapOrExplore);
+  const { users: nearbyUsers } = useNearbyUsers(mapOrExplore && !!profile?.id && !!position);
+  useLocationReporter(position, mapOrExplore && !!profile?.id);
 
   const companions = useMemo(
     () =>
@@ -67,15 +67,10 @@ export function HomeClient({ products }: Props) {
       ? isNearRegionCenter(position.lat, position.lng, region.mapCenter)
       : true;
 
-  function handleLocationAccept() {
-    void requestNow();
+  function handleLocationSuccess(pos: Parameters<typeof applyPosition>[0]) {
     accept();
+    applyPosition(pos);
   }
-
-  const showConsentBanner =
-    ready && mapOrExplore && (consented === null || consented === false);
-  const showLocationPrompt =
-    geoEnabled && needsUserGesture && !position && tab === 'map';
 
   function liveAngle(companionId: string, lat: number, lng: number) {
     if (position == null) return undefined;
@@ -83,6 +78,14 @@ export function HomeClient({ products }: Props) {
     if (item?.kind !== 'mock') return undefined;
     return bearingDegrees(position.lat, position.lng, lat, lng);
   }
+
+  const locationPromptProps = {
+    loading: geoLoading,
+    error: geoError,
+    onStart: startLoading,
+    onSuccess: handleLocationSuccess,
+    onError: reportError,
+  };
 
   return (
     <main className="relative mx-auto flex h-[100dvh] max-w-md flex-col overflow-hidden bg-background">
@@ -128,24 +131,7 @@ export function HomeClient({ products }: Props) {
                 activeId={activeId}
                 onSelect={setActiveId}
               />
-              {showLocationPrompt && (
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-background/70 px-6 backdrop-blur-[2px]">
-                  <p className="text-center text-sm font-medium text-foreground">
-                    내 주변 동행을 보려면 위치 허용이 필요합니다
-                  </p>
-                  {geoError && (
-                    <p className="text-center text-xs text-muted-foreground">{geoError}</p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => void requestNow()}
-                    disabled={geoLoading}
-                    className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-                  >
-                    {geoLoading ? '요청 중…' : '위치 허용하기'}
-                  </button>
-                </div>
-              )}
+              {!position && <LocationAllowPrompt {...locationPromptProps} />}
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-3xl border-t border-border bg-background pt-3 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.12)]">
@@ -172,20 +158,9 @@ export function HomeClient({ products }: Props) {
 
         {tab === 'explore' && (
           <div className="h-full overflow-y-auto px-4 pb-24 pt-1">
-            {geoEnabled && needsUserGesture && !position && (
-              <div className="mb-3 rounded-2xl border border-border bg-card p-4">
-                <p className="text-sm font-medium">위치 허용이 필요합니다</p>
-                {geoError && (
-                  <p className="mt-1 text-xs text-muted-foreground">{geoError}</p>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void requestNow()}
-                  disabled={geoLoading}
-                  className="mt-3 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
-                >
-                  {geoLoading ? '요청 중…' : '위치 허용하기'}
-                </button>
+            {!position && (
+              <div className="mb-3">
+                <LocationAllowPrompt {...locationPromptProps} compact />
               </div>
             )}
             <div className="flex flex-col gap-3">
@@ -206,20 +181,6 @@ export function HomeClient({ products }: Props) {
       <BottomNav active={tab} onChange={setTab} />
 
       <CompanionDetailSheet companion={activeCompanion} onClose={() => setActiveId(null)} />
-
-      {showConsentBanner && (
-        <LocationConsentBanner
-          onAccept={handleLocationAccept}
-          onDecline={decline}
-          declinedBefore={consented === false}
-        />
-      )}
-
-      {geoEnabled && geoLoading && !position && !showLocationPrompt && (
-        <p className="absolute bottom-24 left-0 right-0 text-center text-[10px] text-muted-foreground">
-          위치 조회 중… (화면 사용 중에만 갱신)
-        </p>
-      )}
     </main>
   );
 }

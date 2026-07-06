@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'mukho-location-consent';
+const STORAGE_KEY = 'mukho-location-consent-v2';
 
 export function useLocationConsent() {
   const [consented, setConsented] = useState<boolean | null>(null);

@@ -4,9 +4,13 @@ export type GeoPosition = {
   accuracy: number;
 };
 
-export type GeolocationPermissionState = 'granted' | 'denied' | 'prompt' | 'unknown';
+const USER_GESTURE_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  maximumAge: 0,
+  timeout: 20_000,
+};
 
-const OPTIONS: PositionOptions = {
+const REFRESH_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
   maximumAge: 10_000,
   timeout: 15_000,
@@ -25,36 +29,64 @@ export function geolocationErrorMessage(err: GeolocationPositionError): string {
   }
 }
 
-export function requestBrowserGeolocation(): Promise<GeoPosition> {
-  return new Promise((resolve, reject) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      reject(new Error('이 브라우저에서는 위치 서비스를 사용할 수 없습니다.'));
-      return;
-    }
+/** 클릭 직후 호출 — 브라우저 위치 팝업용 (Promise/async 없이 동기 시작) */
+export function requestGeolocationFromUserGesture(
+  onSuccess: (position: GeoPosition) => void,
+  onError: (message: string) => void,
+): void {
+  if (typeof window === 'undefined') return;
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        resolve({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        });
-      },
-      (err) => reject(err),
-      OPTIONS,
-    );
-  });
+  if (!window.isSecureContext) {
+    onError('HTTPS 연결이 필요합니다.');
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    onError('이 브라우저에서는 위치 서비스를 사용할 수 없습니다.');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      onSuccess({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+      });
+    },
+    (err) => onError(geolocationErrorMessage(err)),
+    USER_GESTURE_OPTIONS,
+  );
 }
 
-export async function queryGeolocationPermission(): Promise<GeolocationPermissionState> {
-  if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
-    return 'unknown';
+export function refreshGeolocation(
+  onSuccess: (position: GeoPosition) => void,
+  onError?: (message: string) => void,
+): void {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      onSuccess({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+      });
+    },
+    (err) => onError?.(geolocationErrorMessage(err)),
+    REFRESH_OPTIONS,
+  );
+}
+
+export function getLocationEnvironmentMessage(): string | null {
+  if (typeof window === 'undefined') return null;
+  if (!window.isSecureContext) return 'HTTPS 연결에서만 위치를 사용할 수 있습니다.';
+  if (!navigator.geolocation) return '이 브라우저는 위치 서비스를 지원하지 않습니다.';
+
+  const ua = navigator.userAgent;
+  if (/KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua)) {
+    return '카카오톡·인스타 등 앱 내 브라우저에서는 위치 팝업이 뜨지 않을 수 있습니다. Safari 또는 Chrome에서 직접 열어주세요.';
   }
 
-  try {
-    const result = await navigator.permissions.query({ name: 'geolocation' });
-    return result.state as GeolocationPermissionState;
-  } catch {
-    return 'unknown';
-  }
+  return null;
 }
