@@ -41,6 +41,15 @@ export type AirtableUser = {
   locationUpdatedAt: string | null;
 };
 
+function parseNumberField(value: unknown): number | null {
+  if (typeof value === 'number' && !Number.isNaN(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  return null;
+}
+
 function mapUser(record: { id: string; fields: AirtableUserFields }): AirtableUser {
   return {
     id: record.id,
@@ -52,9 +61,9 @@ function mapUser(record: { id: string; fields: AirtableUserFields }): AirtableUs
     bio: record.fields.Bio?.trim() || null,
     interestCategories: record.fields['Interest Category'] ?? [],
     profileCompleted: record.fields['Profile Completed'] === true,
-    age: typeof record.fields.Age === 'number' ? record.fields.Age : null,
-    latitude: typeof record.fields.Latitude === 'number' ? record.fields.Latitude : null,
-    longitude: typeof record.fields.Longitude === 'number' ? record.fields.Longitude : null,
+    age: parseNumberField(record.fields.Age),
+    latitude: parseNumberField(record.fields.Latitude),
+    longitude: parseNumberField(record.fields.Longitude),
     locationUpdatedAt: record.fields['Location Updated At'] ?? null,
   };
 }

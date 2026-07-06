@@ -13,7 +13,7 @@ export type { GeoPosition };
 
 const AUTO_RETRY_MESSAGE = '위치 확인 중…';
 const PERMISSION_POLL_MS = 2_000;
-const FALLBACK_AFTER_FAILURES = 2;
+const FALLBACK_AFTER_FAILURES = 5;
 
 export function useGeolocation(active: boolean, intervalMs = 90_000) {
   const [position, setPosition] = useState<GeoPosition | null>(null);
@@ -50,8 +50,19 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     setLoading(true);
     setError(null);
     setLoadingMessage(null);
+    setUseRegionFallback(false);
     loadingRef.current = true;
   }, []);
+
+  const retryFromUserGesture = useCallback(() => {
+    if (!active) return;
+    failureCountRef.current = 0;
+    setUseRegionFallback(false);
+    setError(null);
+    setLoading(true);
+    setLoadingMessage(null);
+    loadingRef.current = true;
+  }, [active]);
 
   const retryWithFeedback = useCallback(
     (options?: { auto?: boolean; force?: boolean }) => {
@@ -110,17 +121,19 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
   }, [active, position, retryWithFeedback]);
 
   // Permissions API change — per-site 허용 시 즉시 재시도
+  // force 없이 호출: 사용자 제스처 요청이 이미 in-flight 중이면 중복 시작하지 않음
   useEffect(() => {
     if (!active || position) return;
 
     return watchGeolocationPermission((state: GeolocationPermissionState) => {
       if (state === 'granted') {
-        retryWithFeedback({ auto: true, force: true });
+        retryWithFeedback({ auto: true });
       }
     });
   }, [active, position, retryWithFeedback]);
 
   // 오버레이 표시 중 permission 폴링 (change 이벤트 미지원 환경 대비)
+  // force 없이 호출: 사용자 제스처 요청이 이미 in-flight 중이면 중복 시작하지 않음
   useEffect(() => {
     if (!active || position) return;
 
@@ -129,24 +142,13 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     const id = window.setInterval(async () => {
       const state = await queryGeolocationPermission();
       if (state === 'granted' && lastState !== 'granted') {
-        retryWithFeedback({ auto: true, force: true });
+        retryWithFeedback({ auto: true });
       }
       lastState = state;
     }, PERMISSION_POLL_MS);
 
     return () => window.clearInterval(id);
   }, [active, position, retryWithFeedback]);
-
-  // permission granted인데 GPS 실패 — 1회 실패 후 지역 기준 폴백
-  useEffect(() => {
-    if (!active || position || !error || useRegionFallback) return;
-
-    void queryGeolocationPermission().then((state) => {
-      if (state === 'granted' && failureCountRef.current >= 1) {
-        setUseRegionFallback(true);
-      }
-    });
-  }, [active, position, error, useRegionFallback]);
 
   return {
     position,
@@ -158,5 +160,6 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     reportError,
     startLoading,
     retrySilent,
+    retryFromUserGesture,
   };
 }

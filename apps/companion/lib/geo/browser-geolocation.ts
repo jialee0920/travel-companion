@@ -20,8 +20,10 @@ export function isIosDevice(): boolean {
 export function geolocationErrorMessage(err: GeolocationPositionError): string {
   switch (err.code) {
     case err.PERMISSION_DENIED:
-    case err.POSITION_UNAVAILABLE:
+      return '위치 접근이 거부되었습니다. 브라우저 설정 → 사이트 설정에서 위치를 허용해 주세요.';
     case err.TIMEOUT:
+      return 'GPS 신호 수신 중입니다. 잠시 후 다시 시도해 주세요.';
+    case err.POSITION_UNAVAILABLE:
     default:
       return GENERIC_ERROR;
   }

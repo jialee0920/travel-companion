@@ -42,7 +42,7 @@ export function HomeClient({ products }: Props) {
     useRegionFallback,
     applyPosition,
     reportError,
-    startLoading,
+    retryFromUserGesture,
   } = useGeolocation(mapOrExplore);
 
   const fallbackPosition = useRegionFallback
@@ -52,7 +52,11 @@ export function HomeClient({ products }: Props) {
 
   const nearbyEnabled = mapOrExplore && !!profile?.id && !!position;
   const { users: nearbyUsers, refresh: refreshNearby } = useNearbyUsers(nearbyEnabled);
-  useLocationReporter(position, nearbyEnabled, refreshNearby);
+  const { saveError: locationSaveError } = useLocationReporter(
+    position,
+    nearbyEnabled,
+    refreshNearby,
+  );
 
   const companions = useMemo(
     () =>
@@ -75,7 +79,7 @@ export function HomeClient({ products }: Props) {
     displayPosition != null
       ? isNearRegionCenter(displayPosition.lat, displayPosition.lng, region.mapCenter)
       : true;
-  const showLocationOverlay = !position && !useRegionFallback;
+  const showLocationOverlay = !position;
 
   function handleLocationSuccess(pos: Parameters<typeof applyPosition>[0]) {
     accept();
@@ -93,7 +97,7 @@ export function HomeClient({ products }: Props) {
     loading: geoLoading,
     loadingMessage: geoLoadingMessage,
     error: geoError,
-    onStart: startLoading,
+    onStart: retryFromUserGesture,
     onSuccess: handleLocationSuccess,
     onError: reportError,
   };
@@ -143,8 +147,25 @@ export function HomeClient({ products }: Props) {
                 onSelect={setActiveId}
               />
               {useRegionFallback && (
-                <div className="absolute left-3 right-3 top-3 z-40 rounded-lg bg-background/90 px-3 py-1.5 text-center text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
-                  위치 없음 · {region.name} 기준 표시
+                <div className="absolute left-3 right-3 top-3 z-40 rounded-lg bg-background/90 px-3 py-2 text-center shadow-sm backdrop-blur-sm">
+                  <p className="text-[11px] text-muted-foreground">
+                    위치 없음 · {region.name} 기준 표시
+                  </p>
+                  {profile?.id && (
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                      위치 허용 시 동행 찾기에 반영됩니다
+                    </p>
+                  )}
+                </div>
+              )}
+              {!profile?.id && position && (
+                <div className="absolute left-3 right-3 top-3 z-40 rounded-lg bg-background/90 px-3 py-1.5 text-center text-[11px] text-amber-700 shadow-sm backdrop-blur-sm">
+                  로그인하면 내 위치가 동행 찾기에 반영됩니다
+                </div>
+              )}
+              {profile?.id && position && locationSaveError && (
+                <div className="absolute bottom-3 left-3 right-3 z-40 rounded-lg bg-destructive/10 px-3 py-2 text-center text-[11px] text-destructive shadow-sm backdrop-blur-sm">
+                  {locationSaveError}
                 </div>
               )}
               {showLocationOverlay && <LocationAllowPrompt {...locationPromptProps} />}
