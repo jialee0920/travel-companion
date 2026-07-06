@@ -9,43 +9,17 @@ import {
   formatPrice,
   perPersonCharge,
 } from '@/lib/geo';
+import { openPaymentWindow } from '@/lib/payments/client-sdk';
+import type { ClientCheckoutConfig } from '@/lib/payments/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { cn } from '@/lib/utils';
-
-declare global {
-  interface Window {
-    IMP?: {
-      init: (code: string) => void;
-      request_pay: (
-        params: Record<string, unknown>,
-        callback: (response: {
-          success: boolean;
-          imp_uid?: string;
-          merchant_uid?: string;
-          error_msg?: string;
-        }) => void,
-      ) => void;
-    };
-  }
-}
 
 type Props = {
   product: RegionProduct;
 };
 
-function loadPortOneScript(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (window.IMP) {
-      resolve();
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://cdn.iamport.kr/v1/iamport.js';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('결제 모듈 로드 실패'));
-    document.head.appendChild(script);
-  });
-}
+const PAYMENT_NOT_CONFIGURED_MSG =
+  '결제 연동 설정 중입니다. PG 키 등록 후 다시 시도해 주세요.';
 
 export function GroupBuyWidget({ product }: Props) {
   const router = useRouter();
@@ -87,53 +61,30 @@ export function GroupBuyWidget({ product }: Props) {
       const prepare = await prepareRes.json();
       if (!prepareRes.ok) throw new Error(prepare.error ?? '주문 생성 실패');
 
-      await loadPortOneScript();
-      const storeId =
-        process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? 'imp00000000';
+      const checkout = prepare.checkout as ClientCheckoutConfig | undefined;
+      if (!checkout?.configured) {
+        setStatus('error');
+        setMessage(PAYMENT_NOT_CONFIGURED_MSG);
+        return;
+      }
 
-      window.IMP!.init(storeId);
-      window.IMP!.request_pay(
-        {
-          pg: 'html5_inicis.INIpayTest',
-          pay_method: 'card',
-          merchant_uid: prepare.merchantUid,
-          name: product.name,
-          amount: prepare.amount,
-          buyer_name: profile.name,
-          buyer_tel: profile.phone,
+      await openPaymentWindow({
+        sdkUrl: checkout.sdkUrl,
+        clientId: checkout.clientId,
+        orderId: prepare.merchantUid,
+        amount: prepare.amount,
+        goodsName: product.name,
+        returnUrl: checkout.returnUrl,
+        buyerName: profile.name,
+        buyerTel: profile.phone,
+        onError: (errMsg) => {
+          setStatus('error');
+          setMessage(errMsg || '결제가 취소되었습니다.');
         },
-        async (response) => {
-          if (!response.success) {
-            setStatus('error');
-            setMessage(response.error_msg ?? '결제가 취소되었습니다.');
-            return;
-          }
+      });
 
-          setStatus('loading');
-          const confirmRes = await fetch('/api/payments/confirm', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              merchantUid: prepare.merchantUid,
-              impUid: response.imp_uid,
-              amount: prepare.amount,
-              name: profile.name,
-              phone: profile.phone,
-              productId: product.id,
-              productName: product.name,
-              region: product.region,
-            }),
-          });
-          const confirm = await confirmRes.json();
-          if (!confirmRes.ok) {
-            setStatus('error');
-            setMessage(confirm.error ?? '결제 확인 실패');
-            return;
-          }
-          setStatus('paid');
-          setMessage('결제가 완료되었습니다. 이용권이 발급됩니다.');
-        },
-      );
+      setStatus('loading');
+      setMessage('결제창으로 이동합니다…');
     } catch (err) {
       setStatus('error');
       setMessage(err instanceof Error ? err.message : '오류가 발생했습니다.');

@@ -8,6 +8,7 @@ import {
   incrementProductCount as incrementAirtableProductCount,
 } from '@/lib/airtable/products';
 import {
+  getOrderByMerchantUid as getAirtableOrderByMerchantUid,
   listOrders as listAirtableOrders,
   listOrdersByPhone as listAirtableOrdersByPhone,
   listOrdersByProfileId as listAirtableOrdersByProfileId,
@@ -21,6 +22,13 @@ export type { OrderRecord, ParticipantRecord };
 
 const memoryOrders: OrderRecord[] = [];
 const memoryParticipants: ParticipantRecord[] = [];
+
+export async function getOrderByMerchantUid(merchantUid: string): Promise<OrderRecord | null> {
+  if (getAirtableConfig()) {
+    return getAirtableOrderByMerchantUid(merchantUid);
+  }
+  return memoryOrders.find((o) => o.merchant_uid === merchantUid) ?? null;
+}
 
 export async function saveOrder(
   order: Omit<OrderRecord, 'id' | 'created_at'>,

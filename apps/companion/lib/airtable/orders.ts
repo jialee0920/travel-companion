@@ -66,6 +66,17 @@ function toFields(order: Omit<OrderRecord, 'id' | 'created_at'>): OrderFields {
   };
 }
 
+export async function getOrderByMerchantUid(merchantUid: string): Promise<OrderRecord | null> {
+  const config = requireAirtableConfig();
+  const formula = `{Merchant UID}="${escapeAirtableFormula(merchantUid)}"`;
+  const records = await listRecords<OrderFields>(config.ordersTable, {
+    filterByFormula: formula,
+    maxRecords: 1,
+  });
+  if (records.length === 0) return null;
+  return mapOrder(records[0]);
+}
+
 export async function saveOrder(
   order: Omit<OrderRecord, 'id' | 'created_at'>,
 ): Promise<OrderRecord> {

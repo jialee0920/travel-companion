@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
-import { upsertUser } from '@/lib/airtable/users';
+import { saveOrder } from '@/lib/db/orders';
 import { getProductById } from '@/lib/db/products';
+import { generateOrderCode, perPersonCharge } from '@/lib/geo';
+import { completeOrderAfterPayment } from '@/lib/payments/complete-order';
+import { getPaymentProvider } from '@/lib/payments/provider';
+import { upsertUser } from '@/lib/airtable/users';
 
+/** PG 승인 완료 후 Orders·Participants 저장 (returnUrl 외 수동 확인용) */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
       merchantUid,
+      pgTransactionId,
       impUid,
       amount,
       name,
@@ -16,6 +22,7 @@ export async function POST(request: Request) {
       region,
     } = body as {
       merchantUid?: string;
+      pgTransactionId?: string;
       impUid?: string;
       amount?: number;
       name?: string;
@@ -25,70 +32,43 @@ export async function POST(request: Request) {
       region?: string;
     };
 
-    if (!merchantUid || !impUid || !amount || !name || !phone || !productId || !productName) {
+    const transactionId = pgTransactionId ?? impUid;
+
+    if (!merchantUid || !transactionId || !amount || !name || !phone || !productId || !productName) {
       return NextResponse.json({ error: '필수 정보가 누락되었습니다.' }, { status: 400 });
     }
 
-    const apiSecret = process.env.PORTONE_API_SECRET;
-    if (apiSecret) {
-      const verifyRes = await fetch(`https://api.iamport.kr/payments/${impUid}`, {
-        headers: { Authorization: apiSecret },
-      });
-      const verifyJson = await verifyRes.json();
-      const payment = verifyJson.response;
-      if (!payment || payment.status !== 'paid' || payment.amount !== amount) {
-        return NextResponse.json({ error: '결제 검증에 실패했습니다.' }, { status: 400 });
-      }
+    const provider = getPaymentProvider();
+    if (!provider.isConfigured()) {
+      return NextResponse.json(
+        { error: '결제 PG 설정이 완료되지 않았습니다. PAYMENT_* 환경 변수를 확인하세요.' },
+        { status: 503 },
+      );
     }
 
-    const { updateOrderPayment, addParticipant, incrementProductCount, saveOrder } = await import(
-      '@/lib/db/orders'
-    );
-    const { generateOrderCode } = await import('@/lib/geo');
+    const approved = await provider.approvePayment({
+      transactionId,
+      amount,
+      orderId: merchantUid,
+    });
 
-    const user = await upsertUser({
+    if (!approved.ok) {
+      return NextResponse.json(
+        { error: approved.error ?? '결제 검증에 실패했습니다.' },
+        { status: 400 },
+      );
+    }
+
+    await completeOrderAfterPayment({
+      merchantUid,
+      pgTransactionId: approved.transactionId,
+      amount: approved.amount,
       name,
       phone,
+      productId,
+      productName,
       region: region ?? 'mukho',
     });
-
-    const order = await updateOrderPayment(merchantUid, {
-      payment_status: 'paid',
-      imp_uid: impUid,
-      profile_id: user.id,
-    });
-
-    if (order) {
-      await addParticipant({
-        product_id: productId,
-        profile_id: user.id,
-        display_name: name.slice(0, 1) + '**',
-        order_code: order.order_code,
-      });
-      await incrementProductCount(productId);
-    } else {
-      const orderCode = generateOrderCode();
-      await saveOrder({
-        order_code: orderCode,
-        profile_id: user.id,
-        product_id: productId,
-        product_name: productName,
-        participant_name: name,
-        participant_phone: phone,
-        region: region ?? 'mukho',
-        amount,
-        payment_status: 'paid',
-        imp_uid: impUid,
-        merchant_uid: merchantUid,
-      });
-      await addParticipant({
-        product_id: productId,
-        profile_id: user.id,
-        display_name: name.slice(0, 1) + '**',
-        order_code: orderCode,
-      });
-      await incrementProductCount(productId);
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -97,13 +77,10 @@ export async function POST(request: Request) {
   }
 }
 
+/** 결제창 호출 전 pending 주문 생성 */
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { saveOrder } = await import('@/lib/db/orders');
-    const { generateOrderCode, perPersonCharge } = await import('@/lib/geo');
-    const { upsertUser } = await import('@/lib/airtable/users');
-
     const { productId, name, phone, region = 'mukho', profileId } = body as {
       productId?: string;
       name?: string;
@@ -123,6 +100,9 @@ export async function PUT(request: Request) {
     if (product.groupBuyStatus === 'success' || product.currentCount >= product.targetCount) {
       return NextResponse.json({ error: '모집이 완료된 상품입니다.' }, { status: 400 });
     }
+
+    const provider = getPaymentProvider();
+    const checkout = provider.getClientCheckoutConfig();
 
     const amount = perPersonCharge(product.regularPrice, product.discountRate, product.targetCount);
     const merchantUid = `order_${crypto.randomUUID()}`;
@@ -153,6 +133,7 @@ export async function PUT(request: Request) {
       orderCode,
       amount,
       productName: product.name,
+      checkout,
     });
   } catch (error) {
     console.error(error);
