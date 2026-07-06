@@ -35,7 +35,13 @@ export function HomeClient({ products }: Props) {
 
   const mapOrExplore = tab === 'map' || tab === 'explore';
   const geoEnabled = consented === true && mapOrExplore;
-  const { position, refresh: refreshGeolocation } = useGeolocation(geoEnabled);
+  const {
+    position,
+    error: geoError,
+    loading: geoLoading,
+    needsUserGesture,
+    requestNow,
+  } = useGeolocation(geoEnabled);
   const { users: nearbyUsers } = useNearbyUsers(geoEnabled && !!profile?.id);
   useLocationReporter(position, geoEnabled && !!profile?.id);
 
@@ -60,6 +66,16 @@ export function HomeClient({ products }: Props) {
     position != null
       ? isNearRegionCenter(position.lat, position.lng, region.mapCenter)
       : true;
+
+  function handleLocationAccept() {
+    void requestNow();
+    accept();
+  }
+
+  const showConsentBanner =
+    ready && mapOrExplore && (consented === null || consented === false);
+  const showLocationPrompt =
+    geoEnabled && needsUserGesture && !position && tab === 'map';
 
   function liveAngle(companionId: string, lat: number, lng: number) {
     if (position == null) return undefined;
@@ -112,6 +128,24 @@ export function HomeClient({ products }: Props) {
                 activeId={activeId}
                 onSelect={setActiveId}
               />
+              {showLocationPrompt && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-background/70 px-6 backdrop-blur-[2px]">
+                  <p className="text-center text-sm font-medium text-foreground">
+                    내 주변 동행을 보려면 위치 허용이 필요합니다
+                  </p>
+                  {geoError && (
+                    <p className="text-center text-xs text-muted-foreground">{geoError}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void requestNow()}
+                    disabled={geoLoading}
+                    className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                  >
+                    {geoLoading ? '요청 중…' : '위치 허용하기'}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-3xl border-t border-border bg-background pt-3 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.12)]">
@@ -138,6 +172,22 @@ export function HomeClient({ products }: Props) {
 
         {tab === 'explore' && (
           <div className="h-full overflow-y-auto px-4 pb-24 pt-1">
+            {geoEnabled && needsUserGesture && !position && (
+              <div className="mb-3 rounded-2xl border border-border bg-card p-4">
+                <p className="text-sm font-medium">위치 허용이 필요합니다</p>
+                {geoError && (
+                  <p className="mt-1 text-xs text-muted-foreground">{geoError}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void requestNow()}
+                  disabled={geoLoading}
+                  className="mt-3 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                >
+                  {geoLoading ? '요청 중…' : '위치 허용하기'}
+                </button>
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               {companions.map((c) => (
                 <CompanionCard
@@ -157,17 +207,15 @@ export function HomeClient({ products }: Props) {
 
       <CompanionDetailSheet companion={activeCompanion} onClose={() => setActiveId(null)} />
 
-      {ready && consented === null && mapOrExplore && (
+      {showConsentBanner && (
         <LocationConsentBanner
-          onAccept={() => {
-            accept();
-            refreshGeolocation({ force: true });
-          }}
+          onAccept={handleLocationAccept}
           onDecline={decline}
+          declinedBefore={consented === false}
         />
       )}
 
-      {geoEnabled && !position && (
+      {geoEnabled && geoLoading && !position && !showLocationPrompt && (
         <p className="absolute bottom-24 left-0 right-0 text-center text-[10px] text-muted-foreground">
           위치 조회 중… (화면 사용 중에만 갱신)
         </p>
