@@ -1,7 +1,7 @@
 import type { RegionSpot } from '@/lib/regions/types';
 import { haversineDistanceKm } from '@/lib/geo';
 
-const FALLBACK_AREA = '묵호 일대';
+const FALLBACK_AREA = '내 주변';
 const MAX_SPOT_KM = 1.5;
 
 /** 좌표에서 가장 가까운 region spot 이름 (역지오코딩 대체) */

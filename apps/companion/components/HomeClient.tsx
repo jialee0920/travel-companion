@@ -6,6 +6,7 @@ import { getRegion } from '@/lib/regions';
 import type { CategoryFilter, RegionProduct } from '@/lib/regions/types';
 import { buildCompanionList } from '@/lib/companions/build-list';
 import { bearingDegrees } from '@/lib/geo';
+import { getMapViewCenter, isNearRegionCenter } from '@/lib/geo/map-view';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useLocationConsent } from '@/hooks/useLocationConsent';
 import { useLocationReporter } from '@/hooks/useLocationReporter';
@@ -54,6 +55,12 @@ export function HomeClient({ products }: Props) {
 
   const activeCompanion = companions.find((c) => c.id === activeId) ?? null;
 
+  const mapCenter = getMapViewCenter(position?.lat, position?.lng, region.mapCenter);
+  const showRegionSpots =
+    position != null
+      ? isNearRegionCenter(position.lat, position.lng, region.mapCenter)
+      : true;
+
   function liveAngle(companionId: string, lat: number, lng: number) {
     if (position == null) return undefined;
     const item = companions.find((c) => c.id === companionId);
@@ -89,15 +96,16 @@ export function HomeClient({ products }: Props) {
 
       {tab === 'map' && <GroupBuySection products={products} variant="home" />}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         {tab === 'map' && (
-          <div className="flex h-full flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="relative h-52 shrink-0">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="relative h-64 shrink-0">
               <CompanionMap
                 companions={companions}
                 spots={region.spots}
-                centerLat={region.mapCenter.lat}
-                centerLng={region.mapCenter.lng}
+                showSpots={showRegionSpots}
+                centerLat={mapCenter.lat}
+                centerLng={mapCenter.lng}
                 radiusKm={region.searchRadiusKm}
                 userLat={position?.lat}
                 userLng={position?.lng}
@@ -106,21 +114,23 @@ export function HomeClient({ products }: Props) {
               />
             </div>
 
-            <div className="shrink-0 rounded-t-3xl border-t border-border bg-background pt-3 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.12)]">
-              <div className="flex items-center justify-between px-5 pb-2">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-3xl border-t border-border bg-background pt-3 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.12)]">
+              <div className="flex shrink-0 items-center justify-between px-5 pb-2">
                 <p className="text-sm font-semibold">내 주변 동행 {companions.length}명</p>
                 <span className="text-xs text-muted-foreground">가까운 순</span>
               </div>
-              <div className="flex flex-col gap-3 px-4 pb-4">
-                {companions.map((c) => (
-                  <CompanionCard
-                    key={c.id}
-                    companion={c}
-                    active={c.id === activeId}
-                    liveAngle={liveAngle(c.id, c.lat, c.lng)}
-                    onClick={() => setActiveId(c.id)}
-                  />
-                ))}
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-28 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex flex-col gap-3">
+                  {companions.map((c) => (
+                    <CompanionCard
+                      key={c.id}
+                      companion={c}
+                      active={c.id === activeId}
+                      liveAngle={liveAngle(c.id, c.lat, c.lng)}
+                      onClick={() => setActiveId(c.id)}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import type { AirtableUser } from '@/lib/airtable/users';
 import { getActivityStatus } from '@/lib/companions/activity';
+import { prepareMocksForDisplay } from '@/lib/companions/mock-placement';
 import { interestToCategories, primaryCategory } from '@/lib/companions/category-map';
 import type { CompanionListItem } from '@/lib/companions/types';
 import { haversineDistanceKm } from '@/lib/geo';
@@ -102,7 +103,8 @@ export function buildCompanionList(options: {
 }): CompanionListItem[] {
   const { mocks, realUsers, spots, category, radiusKm, userLat, userLng } = options;
 
-  const mockItems = mocks.map((c) => mockToListItem(c, userLat, userLng));
+  const displayMocks = prepareMocksForDisplay(mocks, userLat, userLng, radiusKm);
+  const mockItems = displayMocks.map((c) => mockToListItem(c, userLat, userLng));
   const realItems: CompanionListItem[] = [];
 
   if (userLat != null && userLng != null) {

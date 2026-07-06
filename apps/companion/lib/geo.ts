@@ -23,6 +23,31 @@ export function haversineDistanceKm(
   return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/** 출발점에서 방위각·거리만큼 이동한 좌표 */
+export function destinationKm(
+  lat: number,
+  lng: number,
+  distanceKm: number,
+  bearingDeg: number,
+): { lat: number; lng: number } {
+  const brng = toRad(bearingDeg);
+  const lat1 = toRad(lat);
+  const lon1 = toRad(lng);
+  const angDist = distanceKm / EARTH_RADIUS_KM;
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(angDist) + Math.cos(lat1) * Math.sin(angDist) * Math.cos(brng),
+  );
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(brng) * Math.sin(angDist) * Math.cos(lat1),
+      Math.cos(angDist) - Math.sin(lat1) * Math.sin(lat2),
+    );
+
+  return { lat: toDeg(lat2), lng: toDeg(lon2) };
+}
+
 /** 북쪽 기준 방위각 (0~360°) — 지도 핀 각도 표시용 */
 export function bearingDegrees(
   fromLat: number,
