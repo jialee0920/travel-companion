@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { NearbyUserDto } from '@/lib/companions/build-list';
-import { DEFAULT_REGION_CODE } from '@/lib/regions';
 
 const REFRESH_MS = 90_000;
 
@@ -14,7 +13,7 @@ export function useNearbyUsers(enabled: boolean) {
     if (!enabled) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/users/nearby?region=${encodeURIComponent(DEFAULT_REGION_CODE)}`);
+      const res = await fetch('/api/users/nearby');
       if (res.status === 401) {
         setUsers([]);
         return;

@@ -127,8 +127,19 @@ export async function listRealUsers(
     filterByFormula: formula,
   });
 
-  return records
-    .map(mapUser)
+  return filterRealUsers(records.map(mapUser), excludeUserId);
+}
+
+/** Region 무관 — 지도 nearby·전체 실가입자 목록용 */
+export async function listAllRealUsers(excludeUserId?: string): Promise<AirtableUser[]> {
+  const config = requireAirtableConfig();
+  const records = await listRecords<AirtableUserFields>(config.usersTable, {});
+
+  return filterRealUsers(records.map(mapUser), excludeUserId);
+}
+
+function filterRealUsers(users: AirtableUser[], excludeUserId?: string): AirtableUser[] {
+  return users
     .filter(
       (user) =>
         !user.companionSeedId &&
@@ -208,13 +219,10 @@ export async function updateUserLocation(
   return mapUser(updated);
 }
 
-/** 1시간 이내 위치 갱신된 실가입자 (반경 필터는 클라이언트) */
-export async function listNearbyActiveUsers(
-  region: string,
-  excludeUserId?: string,
-): Promise<AirtableUser[]> {
+/** 1시간 이내 위치 갱신된 실가입자 (Region 무관, 5km 반경 필터는 클라이언트) */
+export async function listNearbyActiveUsers(excludeUserId?: string): Promise<AirtableUser[]> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const users = await listRealUsers(region, excludeUserId);
+  const users = await listAllRealUsers(excludeUserId);
 
   return users.filter(
     (user) =>
