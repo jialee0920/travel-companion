@@ -10,35 +10,29 @@ const REFRESH_OPTIONS: PositionOptions = {
   timeout: 15_000,
 };
 
+const GENERIC_ERROR = '위치를 가져올 수 없습니다. 다시 시도해 주세요.';
+
 export function isIosDevice(): boolean {
   if (typeof navigator === 'undefined') return false;
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
-export function getPermissionDeniedHelp(): string {
-  if (isIosDevice()) {
-    return [
-      '① Safari 주소창 왼쪽 「aA」→ 「웹사이트 설정」→ 「위치」→ 「허용」',
-      '② 설정 → Safari → 위치 → 「묻기」 또는 「허용」',
-      '③ 한 번 「허용 안 함」을 눌렀다면: 설정 → Safari → 고급 → 웹사이트 데이터 → 이 사이트 삭제 후 다시 시도',
-      '설정 변경 후 이 페이지로 돌아오면 자동으로 다시 시도합니다.',
-    ].join(' ');
-  }
-
-  return '브라우저에서 위치 접근이 차단되었습니다. 주소창 자물쇠 → 위치 → 허용으로 변경해 주세요.';
-}
-
 export function geolocationErrorMessage(err: GeolocationPositionError): string {
   switch (err.code) {
     case err.PERMISSION_DENIED:
-      return getPermissionDeniedHelp();
     case err.POSITION_UNAVAILABLE:
-      return '현재 위치를 가져올 수 없습니다. GPS 또는 Wi-Fi를 확인해 주세요.';
     case err.TIMEOUT:
-      return '위치 조회 시간이 초과되었습니다. 다시 시도해 주세요.';
     default:
-      return err.message || '위치 조회에 실패했습니다.';
+      return GENERIC_ERROR;
   }
+}
+
+async function resolveGeolocationErrorMessage(err: GeolocationPositionError): Promise<string> {
+  const permission = await queryGeolocationPermission();
+  if (permission === 'granted') {
+    return GENERIC_ERROR;
+  }
+  return geolocationErrorMessage(err);
 }
 
 function toGeoPosition(pos: GeolocationPosition): GeoPosition {
@@ -61,7 +55,42 @@ function tryGetCurrentPosition(
   );
 }
 
-/** 클릭 직후 호출 — iOS는 고정밀 실패 시 일반 GPS로 재시도 */
+function getUserGestureOptions(): [PositionOptions, PositionOptions] {
+  const lowAccuracy: PositionOptions = {
+    enableHighAccuracy: false,
+    maximumAge: 0,
+    timeout: 25_000,
+  };
+
+  const highAccuracy: PositionOptions = {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 20_000,
+  };
+
+  return isIosDevice() ? [lowAccuracy, highAccuracy] : [highAccuracy, lowAccuracy];
+}
+
+function requestWithFallback(
+  primary: PositionOptions,
+  fallback: PositionOptions,
+  onSuccess: (position: GeoPosition) => void,
+  onError: (err: GeolocationPositionError) => void,
+): void {
+  tryGetCurrentPosition(primary, onSuccess, (err) => {
+    if (
+      err.code === err.TIMEOUT ||
+      err.code === err.POSITION_UNAVAILABLE ||
+      err.code === err.PERMISSION_DENIED
+    ) {
+      tryGetCurrentPosition(fallback, onSuccess, onError);
+      return;
+    }
+    onError(err);
+  });
+}
+
+/** 클릭 직후 호출 — iOS는 일반 GPS 우선, 실패 시 고정밀 재시도 */
 export function requestGeolocationFromUserGesture(
   onSuccess: (position: GeoPosition) => void,
   onError: (message: string) => void,
@@ -78,31 +107,14 @@ export function requestGeolocationFromUserGesture(
     return;
   }
 
-  const highAccuracy: PositionOptions = {
-    enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: 20_000,
-  };
+  const [primary, fallback] = getUserGestureOptions();
 
-  const lowAccuracy: PositionOptions = {
-    enableHighAccuracy: false,
-    maximumAge: 0,
-    timeout: 25_000,
-  };
-
-  tryGetCurrentPosition(
-    highAccuracy,
+  requestWithFallback(
+    primary,
+    fallback,
     onSuccess,
     (err) => {
-      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
-        tryGetCurrentPosition(
-          lowAccuracy,
-          onSuccess,
-          (retryErr) => onError(geolocationErrorMessage(retryErr)),
-        );
-        return;
-      }
-      onError(geolocationErrorMessage(err));
+      void resolveGeolocationErrorMessage(err).then(onError);
     },
   );
 }
@@ -113,19 +125,22 @@ export function refreshGeolocation(
 ): void {
   if (typeof navigator === 'undefined' || !navigator.geolocation) return;
 
-  tryGetCurrentPosition(
-    REFRESH_OPTIONS,
+  const lowAccuracy: PositionOptions = {
+    enableHighAccuracy: false,
+    maximumAge: 10_000,
+    timeout: 20_000,
+  };
+
+  const [primary, fallback] = isIosDevice()
+    ? [lowAccuracy, REFRESH_OPTIONS]
+    : [REFRESH_OPTIONS, lowAccuracy];
+
+  requestWithFallback(
+    primary,
+    fallback,
     onSuccess,
     (err) => {
-      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
-        tryGetCurrentPosition(
-          { enableHighAccuracy: false, maximumAge: 10_000, timeout: 20_000 },
-          onSuccess,
-          (retryErr) => onError?.(geolocationErrorMessage(retryErr)),
-        );
-        return;
-      }
-      onError?.(geolocationErrorMessage(err));
+      void resolveGeolocationErrorMessage(err).then((message) => onError?.(message));
     },
   );
 }
@@ -180,7 +195,7 @@ export function getLocationEnvironmentMessage(): string | null {
 
   const ua = navigator.userAgent;
   if (/KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua)) {
-    return '카카오톡·인스타 등 앱 내 브라우저에서는 위치 팝업이 뜨지 않을 수 있습니다. Safari 또는 Chrome에서 직접 열어주세요.';
+    return '카카오톡·인스타 등 앱 내 브라우저에서는 위치가 동작하지 않을 수 있습니다. Safari에서 열어주세요.';
   }
 
   return null;

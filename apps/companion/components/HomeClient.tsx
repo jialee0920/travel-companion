@@ -39,10 +39,17 @@ export function HomeClient({ products }: Props) {
     error: geoError,
     loading: geoLoading,
     loadingMessage: geoLoadingMessage,
+    useRegionFallback,
     applyPosition,
     reportError,
     startLoading,
   } = useGeolocation(mapOrExplore);
+
+  const fallbackPosition = useRegionFallback
+    ? { lat: region.mapCenter.lat, lng: region.mapCenter.lng, accuracy: 9999 }
+    : null;
+  const displayPosition = position ?? fallbackPosition;
+
   const { users: nearbyUsers } = useNearbyUsers(mapOrExplore && !!profile?.id && !!position);
   useLocationReporter(position, mapOrExplore && !!profile?.id);
 
@@ -54,19 +61,20 @@ export function HomeClient({ products }: Props) {
         spots: region.spots,
         category,
         radiusKm: region.searchRadiusKm,
-        userLat: position?.lat,
-        userLng: position?.lng,
+        userLat: displayPosition?.lat,
+        userLng: displayPosition?.lng,
       }),
-    [category, position, nearbyUsers],
+    [category, displayPosition, nearbyUsers],
   );
 
   const activeCompanion = companions.find((c) => c.id === activeId) ?? null;
 
-  const mapCenter = getMapViewCenter(position?.lat, position?.lng, region.mapCenter);
+  const mapCenter = getMapViewCenter(displayPosition?.lat, displayPosition?.lng, region.mapCenter);
   const showRegionSpots =
-    position != null
-      ? isNearRegionCenter(position.lat, position.lng, region.mapCenter)
+    displayPosition != null
+      ? isNearRegionCenter(displayPosition.lat, displayPosition.lng, region.mapCenter)
       : true;
+  const showLocationOverlay = !position && !useRegionFallback;
 
   function handleLocationSuccess(pos: Parameters<typeof applyPosition>[0]) {
     accept();
@@ -74,10 +82,10 @@ export function HomeClient({ products }: Props) {
   }
 
   function liveAngle(companionId: string, lat: number, lng: number) {
-    if (position == null) return undefined;
+    if (displayPosition == null) return undefined;
     const item = companions.find((c) => c.id === companionId);
     if (item?.kind !== 'mock') return undefined;
-    return bearingDegrees(position.lat, position.lng, lat, lng);
+    return bearingDegrees(displayPosition.lat, displayPosition.lng, lat, lng);
   }
 
   const locationPromptProps = {
@@ -128,12 +136,17 @@ export function HomeClient({ products }: Props) {
                 centerLat={mapCenter.lat}
                 centerLng={mapCenter.lng}
                 radiusKm={region.searchRadiusKm}
-                userLat={position?.lat}
-                userLng={position?.lng}
+                userLat={displayPosition?.lat}
+                userLng={displayPosition?.lng}
                 activeId={activeId}
                 onSelect={setActiveId}
               />
-              {!position && <LocationAllowPrompt {...locationPromptProps} />}
+              {useRegionFallback && (
+                <div className="absolute left-3 right-3 top-3 z-40 rounded-lg bg-background/90 px-3 py-1.5 text-center text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
+                  위치 없음 · {region.name} 기준 표시
+                </div>
+              )}
+              {showLocationOverlay && <LocationAllowPrompt {...locationPromptProps} />}
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-t-3xl border-t border-border bg-background pt-3 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.12)]">
@@ -160,7 +173,12 @@ export function HomeClient({ products }: Props) {
 
         {tab === 'explore' && (
           <div className="h-full overflow-y-auto px-4 pb-24 pt-1">
-            {!position && (
+            {useRegionFallback && (
+              <p className="mb-3 text-center text-xs text-muted-foreground">
+                위치 없음 · {region.name} 기준 표시
+              </p>
+            )}
+            {showLocationOverlay && (
               <div className="mb-3">
                 <LocationAllowPrompt {...locationPromptProps} compact />
               </div>

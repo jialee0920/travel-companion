@@ -3,7 +3,6 @@
 import { MapPin } from 'lucide-react';
 import {
   getLocationEnvironmentMessage,
-  isIosDevice,
   requestGeolocationFromUserGesture,
   type GeoPosition,
 } from '@/lib/geo/browser-geolocation';
@@ -17,6 +16,8 @@ type Props = {
   onError: (message: string) => void;
   compact?: boolean;
 };
+
+const SUBTITLE = '아래 버튼을 눌러 위치를 허용해 주세요.';
 
 export function LocationAllowPrompt({
   loading = false,
@@ -42,27 +43,23 @@ export function LocationAllowPrompt({
       ? '다시 시도'
       : '위치 허용하기';
 
-  const helpText = autoRetrying
+  const statusText = autoRetrying
     ? loadingMessage
     : hasError
       ? error
-      : isIosDevice()
-        ? '버튼을 누르면 Safari 위치 허용 팝업이 표시됩니다. 팝업이 안 뜨면 아래 안내를 확인해 주세요.'
-        : '버튼을 누르면 브라우저 위치 허용 팝업이 표시됩니다.';
+      : envMessage ?? SUBTITLE;
 
   if (compact) {
     return (
       <div className="rounded-2xl border border-border bg-card p-4">
         <p className="text-sm font-medium">내 주변 동행을 보려면 위치 허용이 필요합니다</p>
-        {envMessage && (
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{envMessage}</p>
-        )}
-        {autoRetrying && (
-          <p className="mt-2 text-xs leading-relaxed text-primary">{loadingMessage}</p>
-        )}
-        {hasError && (
-          <p className="mt-2 text-xs leading-relaxed text-destructive">{error}</p>
-        )}
+        <p
+          className={`mt-1 text-xs leading-relaxed ${
+            hasError ? 'text-destructive' : 'text-muted-foreground'
+          }`}
+        >
+          {statusText}
+        </p>
         <button
           type="button"
           onClick={handleClick}
@@ -81,23 +78,19 @@ export function LocationAllowPrompt({
         <MapPin className="size-6" />
       </span>
       <p className="text-center text-sm font-semibold text-foreground">
-        내 주변 동행을 보려면
-        <br />
-        위치 허용이 필요합니다
+        내 주변 동행을 보려면 위치 허용이 필요합니다
       </p>
       <p
         className={`text-center text-xs leading-relaxed ${
-          autoRetrying ? 'font-medium text-primary' : 'text-muted-foreground'
+          autoRetrying
+            ? 'font-medium text-primary'
+            : hasError
+              ? 'text-destructive'
+              : 'text-muted-foreground'
         }`}
       >
-        {helpText}
-        {envMessage ? ` ${envMessage}` : ''}
+        {statusText}
       </p>
-      {hasError && (
-        <p className="max-h-28 overflow-y-auto text-center text-[11px] leading-relaxed text-destructive">
-          {error}
-        </p>
-      )}
       <button
         type="button"
         onClick={handleClick}

@@ -11,29 +11,39 @@ import {
 
 export type { GeoPosition };
 
-const AUTO_RETRY_MESSAGE = '설정에서 허용함 → 위치 확인 중…';
+const AUTO_RETRY_MESSAGE = '위치 확인 중…';
 const PERMISSION_POLL_MS = 2_000;
+const FALLBACK_AFTER_FAILURES = 2;
 
 export function useGeolocation(active: boolean, intervalMs = 90_000) {
   const [position, setPosition] = useState<GeoPosition | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
+  const [useRegionFallback, setUseRegionFallback] = useState(false);
   const loadingRef = useRef(false);
+  const failureCountRef = useRef(0);
 
   const applyPosition = useCallback((next: GeoPosition) => {
     setPosition(next);
     setError(null);
     setLoading(false);
     setLoadingMessage(null);
+    setUseRegionFallback(false);
     loadingRef.current = false;
+    failureCountRef.current = 0;
   }, []);
 
   const reportError = useCallback((message: string) => {
+    failureCountRef.current += 1;
     setError(message);
     setLoading(false);
     setLoadingMessage(null);
     loadingRef.current = false;
+
+    if (failureCountRef.current >= FALLBACK_AFTER_FAILURES) {
+      setUseRegionFallback(true);
+    }
   }, []);
 
   const startLoading = useCallback(() => {
@@ -62,7 +72,7 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
   );
 
   const retrySilent = useCallback(() => {
-    retryWithFeedback({ auto: true });
+    retryWithFeedback({ auto: true, force: true });
   }, [retryWithFeedback]);
 
   useEffect(() => {
@@ -75,31 +85,27 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     return () => window.clearInterval(id);
   }, [active, position, intervalMs, applyPosition]);
 
-  // 설정 앱·Safari aA 메뉴에서 돌아온 뒤 자동 재시도
+  // 설정 앱·Safari에서 돌아온 뒤 자동 재시도
   useEffect(() => {
     if (!active || position) return;
 
+    function retryOnReturn() {
+      retryWithFeedback({ auto: true, force: true });
+    }
+
     function onVisible() {
       if (document.visibilityState === 'visible') {
-        retryWithFeedback({ auto: true });
+        retryOnReturn();
       }
     }
 
-    function onPageShow() {
-      retryWithFeedback({ auto: true });
-    }
-
-    function onFocus() {
-      retryWithFeedback({ auto: true });
-    }
-
     document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('pageshow', onPageShow);
-    window.addEventListener('focus', onFocus);
+    window.addEventListener('pageshow', retryOnReturn);
+    window.addEventListener('focus', retryOnReturn);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('pageshow', onPageShow);
-      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('pageshow', retryOnReturn);
+      window.removeEventListener('focus', retryOnReturn);
     };
   }, [active, position, retryWithFeedback]);
 
@@ -131,11 +137,23 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     return () => window.clearInterval(id);
   }, [active, position, retryWithFeedback]);
 
+  // permission granted인데 GPS 실패 — 1회 실패 후 지역 기준 폴백
+  useEffect(() => {
+    if (!active || position || !error || useRegionFallback) return;
+
+    void queryGeolocationPermission().then((state) => {
+      if (state === 'granted' && failureCountRef.current >= 1) {
+        setUseRegionFallback(true);
+      }
+    });
+  }, [active, position, error, useRegionFallback]);
+
   return {
     position,
     error,
     loading,
     loadingMessage,
+    useRegionFallback,
     applyPosition,
     reportError,
     startLoading,
