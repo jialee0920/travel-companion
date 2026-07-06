@@ -220,26 +220,33 @@ export async function updateUserLocation(
   lng: number,
 ): Promise<AirtableUser> {
   const config = requireAirtableConfig();
-  const updated = await updateRecord<AirtableUserFields>(
+
+  // Location Updated At이 수식(LAST_MODIFIED 등) 필드면 API로 쓸 수 없음 → lat/lng만 PATCH
+  await updateRecord<AirtableUserFields>(
     config.usersTable,
     userId,
     {
       Latitude: lat,
       Longitude: lng,
-      'Location Updated At': new Date().toISOString(),
     },
     { typecast: true },
   );
 
-  const mapped = mapUser(updated);
-  if (
-    mapped.latitude == null ||
-    mapped.longitude == null ||
-    mapped.locationUpdatedAt == null
-  ) {
+  const fresh = await getRecord<AirtableUserFields>(config.usersTable, userId);
+  const mapped = mapUser(fresh);
+
+  if (mapped.latitude == null || mapped.longitude == null) {
     throw new Error(
       'Airtable에 위치가 저장되지 않았습니다. Users 테이블 필드명·타입을 확인하세요: ' +
-        'Latitude(Number), Longitude(Number), Location Updated At(날짜 · 시간 포함).',
+        'Latitude(Number), Longitude(Number).',
+    );
+  }
+
+  if (mapped.locationUpdatedAt == null) {
+    throw new Error(
+      'Latitude/Longitude는 저장됐지만 Location Updated At을 읽을 수 없습니다. ' +
+        'Date 필드(시간 포함)로 만들거나, 수식 필드면 LAST_MODIFIED()를 사용하세요. ' +
+        '(Formula 등 computed 필드에는 API로 값을 쓸 수 없습니다.)',
     );
   }
 
