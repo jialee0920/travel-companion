@@ -14,6 +14,7 @@ export type { GeoPosition };
 
 const AUTO_RETRY_MESSAGE = '위치 확인 중…';
 const PERMISSION_POLL_MS = 2_000;
+// Only user-gesture retries count toward fallback. Auto-retries don't.
 const FALLBACK_AFTER_FAILURES = 5;
 
 export function useGeolocation(active: boolean, intervalMs = 90_000) {
@@ -24,6 +25,8 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
   const [useRegionFallback, setUseRegionFallback] = useState(false);
   const loadingRef = useRef(false);
   const failureCountRef = useRef(0);
+  // Cancel function for in-flight requestGeolocationFromUserGesture (may hold watchPosition)
+  const gestureCleanupRef = useRef<(() => void) | null>(null);
 
   const applyPosition = useCallback((next: GeoPosition) => {
     setPosition(next);
@@ -35,6 +38,7 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     failureCountRef.current = 0;
   }, []);
 
+  // Explicit user-gesture failure — counts toward fallback threshold
   const reportError = useCallback((message: string) => {
     failureCountRef.current += 1;
     setError(message);
@@ -47,6 +51,16 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     }
   }, []);
 
+  // Auto-retry failure (visibilitychange, pageshow, permission poll).
+  // Keeps error visible but does NOT increment failureCount → won't prematurely
+  // trigger region fallback just because background retries timed out.
+  const reportAutoRetryError = useCallback((message: string) => {
+    setError(message);
+    setLoading(false);
+    setLoadingMessage(null);
+    loadingRef.current = false;
+  }, []);
+
   const startLoading = useCallback(() => {
     failureCountRef.current = 0;
     setUseRegionFallback(false);
@@ -56,9 +70,21 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     loadingRef.current = true;
   }, []);
 
+  // Called by requestGeolocationFromUserGesture when iOS switches to watchPosition mode.
+  // Keeps loading=true but updates the visible message so user knows we're still trying.
+  const watchModeStart = useCallback((message: string) => {
+    setLoadingMessage(message);
+    // loading and loadingRef stay true — we're still in-flight
+  }, []);
+
   // 사용자 제스처로 명시적 재시도 — fallback 상태·실패 카운터 초기화 후 GPS 재요청
   const retryFromUserGesture = useCallback(() => {
     if (!active) return;
+
+    // Cancel any in-flight watchPosition from a previous gesture
+    gestureCleanupRef.current?.();
+    gestureCleanupRef.current = null;
+
     failureCountRef.current = 0;
     loadingRef.current = true;
     setUseRegionFallback(false);
@@ -66,11 +92,12 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     setError(null);
     setLoadingMessage(null);
 
-    requestGeolocationFromUserGesture(
+    gestureCleanupRef.current = requestGeolocationFromUserGesture(
       (next) => applyPosition(next),
       (message) => reportError(message),
+      watchModeStart,
     );
-  }, [active, applyPosition, reportError]);
+  }, [active, applyPosition, reportError, watchModeStart]);
 
   const retryWithFeedback = useCallback(
     (options?: { auto?: boolean; force?: boolean }) => {
@@ -84,15 +111,23 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
 
       refreshGeolocation(
         (next) => applyPosition(next),
-        (message) => reportError(message),
+        // Auto-retry failures don't count toward the fallback threshold
+        (message) => reportAutoRetryError(message),
       );
     },
-    [active, position, applyPosition, reportError],
+    [active, position, applyPosition, reportAutoRetryError],
   );
 
   const retrySilent = useCallback(() => {
     retryWithFeedback({ auto: true, force: true });
   }, [retryWithFeedback]);
+
+  // Cancel in-flight gesture request on unmount
+  useEffect(() => {
+    return () => {
+      gestureCleanupRef.current?.();
+    };
+  }, []);
 
   useEffect(() => {
     if (!active || !position) return;
@@ -169,5 +204,6 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
     startLoading,
     retrySilent,
     retryFromUserGesture,
+    watchModeStart,
   };
 }

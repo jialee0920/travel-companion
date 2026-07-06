@@ -44,6 +44,7 @@ export function HomeClient({ products }: Props) {
     reportError,
     startLoading,
     retryFromUserGesture,
+    watchModeStart,
   } = useGeolocation(mapOrExplore);
 
   const fallbackPosition = useRegionFallback
@@ -109,6 +110,7 @@ export function HomeClient({ products }: Props) {
     onStart: startLoading,
     onSuccess: handleLocationSuccess,
     onError: reportError,
+    onWatchStart: watchModeStart,
   };
 
   return (

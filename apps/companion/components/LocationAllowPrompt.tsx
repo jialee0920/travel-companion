@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { MapPin } from 'lucide-react';
 import {
   getLocationEnvironmentMessage,
@@ -14,6 +15,7 @@ type Props = {
   onStart: () => void;
   onSuccess: (position: GeoPosition) => void;
   onError: (message: string) => void;
+  onWatchStart?: (message: string) => void;
   compact?: boolean;
 };
 
@@ -26,15 +28,27 @@ export function LocationAllowPrompt({
   onStart,
   onSuccess,
   onError,
+  onWatchStart,
   compact = false,
 }: Props) {
   const envMessage = getLocationEnvironmentMessage();
   const hasError = Boolean(error) && !loading;
   const autoRetrying = loading && Boolean(loadingMessage);
+  // Cancel any in-flight watchPosition when the component unmounts
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      cleanupRef.current?.();
+    };
+  }, []);
 
   function handleClick() {
+    // Cancel any previous in-flight request before starting a new one
+    cleanupRef.current?.();
+    cleanupRef.current = null;
     onStart();
-    requestGeolocationFromUserGesture(onSuccess, onError);
+    cleanupRef.current = requestGeolocationFromUserGesture(onSuccess, onError, onWatchStart);
   }
 
   const buttonLabel = loading

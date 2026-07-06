@@ -57,68 +57,142 @@ function tryGetCurrentPosition(
   );
 }
 
+// iOS GPS first-fix can take 30-60s. Use generous timeouts so we don't give up prematurely.
 function getUserGestureOptions(): [PositionOptions, PositionOptions] {
   const lowAccuracy: PositionOptions = {
     enableHighAccuracy: false,
     maximumAge: 0,
-    timeout: 25_000,
+    timeout: 40_000, // 40s — iOS network-based location (fast but less accurate)
   };
 
   const highAccuracy: PositionOptions = {
     enableHighAccuracy: true,
     maximumAge: 0,
-    timeout: 20_000,
+    timeout: 55_000, // 55s — GPS hardware fix
   };
 
+  // iOS: try low (network) first for a quick win, then high (GPS) as fallback
+  // Desktop/Android: try high first, low as fallback
   return isIosDevice() ? [lowAccuracy, highAccuracy] : [highAccuracy, lowAccuracy];
 }
 
-function requestWithFallback(
-  primary: PositionOptions,
-  fallback: PositionOptions,
-  onSuccess: (position: GeoPosition) => void,
-  onError: (err: GeolocationPositionError) => void,
-): void {
-  tryGetCurrentPosition(primary, onSuccess, (err) => {
-    if (
-      err.code === err.TIMEOUT ||
-      err.code === err.POSITION_UNAVAILABLE ||
-      err.code === err.PERMISSION_DENIED
-    ) {
-      tryGetCurrentPosition(fallback, onSuccess, onError);
-      return;
+/**
+ * watchPosition until first fix, then stop.
+ * Returns a cancel function. On iOS, GPS hardware continues searching even after
+ * getCurrentPosition times out — watchPosition captures the delayed fix.
+ */
+function watchPositionUntilFix(
+  onSuccess: (pos: GeoPosition) => void,
+  onGiveUp: () => void,
+  maxMs = 90_000,
+): () => void {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    onGiveUp();
+    return () => {};
+  }
+
+  let watchId: number | null = null;
+  let timerId: ReturnType<typeof setTimeout> | null = null;
+  let done = false;
+
+  function cleanup() {
+    if (done) return;
+    done = true;
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
     }
-    onError(err);
-  });
+    if (timerId !== null) {
+      clearTimeout(timerId);
+      timerId = null;
+    }
+  }
+
+  // No timeout on watchPosition itself — the outer timer manages the deadline.
+  // Errors from watchPosition (e.g. transient UNAVAILABLE) are silently ignored.
+  watchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      cleanup();
+      onSuccess(toGeoPosition(pos));
+    },
+    () => {
+      // Transient errors during watch are normal; ignore until maxMs.
+    },
+    { enableHighAccuracy: true, maximumAge: 0 },
+  );
+
+  timerId = setTimeout(() => {
+    cleanup();
+    onGiveUp();
+  }, maxMs);
+
+  return cleanup;
 }
 
-/** 클릭 직후 호출 — iOS는 일반 GPS 우선, 실패 시 고정밀 재시도 */
+/**
+ * 클릭 직후 호출 — iOS는 저정밀 우선, 실패 시 watchPosition(90s)으로 패치.
+ * Returns a cancel function — call it on unmount or when superseded by a new request.
+ */
 export function requestGeolocationFromUserGesture(
   onSuccess: (position: GeoPosition) => void,
   onError: (message: string) => void,
-): void {
-  if (typeof window === 'undefined') return;
+  onWatchStart?: (message: string) => void,
+): () => void {
+  if (typeof window === 'undefined') return () => {};
 
   if (!window.isSecureContext) {
     onError('HTTPS 연결이 필요합니다.');
-    return;
+    return () => {};
   }
 
   if (!navigator.geolocation) {
     onError('이 브라우저에서는 위치 서비스를 사용할 수 없습니다.');
-    return;
+    return () => {};
   }
 
-  const [primary, fallback] = getUserGestureOptions();
+  const [primary, fallbackOptions] = getUserGestureOptions();
+  let watchCancel: (() => void) | null = null;
 
-  requestWithFallback(
-    primary,
-    fallback,
-    onSuccess,
-    (err) => {
-      void resolveGeolocationErrorMessage(err).then(onError);
-    },
-  );
+  function cancel() {
+    watchCancel?.();
+    watchCancel = null;
+  }
+
+  function finalError(err: GeolocationPositionError) {
+    void resolveGeolocationErrorMessage(err).then(onError);
+  }
+
+  function handlePrimaryError(err: GeolocationPositionError) {
+    if (err.code === err.PERMISSION_DENIED) {
+      finalError(err);
+      return;
+    }
+
+    if (isIosDevice()) {
+      // GPS hardware is still searching. Switch to watchPosition so we capture
+      // the fix whenever it arrives rather than immediately giving up.
+      onWatchStart?.('GPS 신호를 잡고 있어요…');
+      watchCancel = watchPositionUntilFix(
+        onSuccess,
+        () => {
+          // 90s watch expired with no fix. One final attempt with cached/low-accuracy.
+          tryGetCurrentPosition(
+            { enableHighAccuracy: false, maximumAge: 30_000, timeout: 20_000 },
+            onSuccess,
+            finalError,
+          );
+        },
+        90_000,
+      );
+    } else {
+      // Non-iOS: standard two-step fallback
+      tryGetCurrentPosition(fallbackOptions, onSuccess, finalError);
+    }
+  }
+
+  tryGetCurrentPosition(primary, onSuccess, handlePrimaryError);
+
+  return cancel;
 }
 
 export function refreshGeolocation(
@@ -137,14 +211,15 @@ export function refreshGeolocation(
     ? [lowAccuracy, REFRESH_OPTIONS]
     : [REFRESH_OPTIONS, lowAccuracy];
 
-  requestWithFallback(
-    primary,
-    fallback,
-    onSuccess,
-    (err) => {
+  tryGetCurrentPosition(primary, onSuccess, (err) => {
+    if (err.code === err.PERMISSION_DENIED) {
       void resolveGeolocationErrorMessage(err).then((message) => onError?.(message));
-    },
-  );
+      return;
+    }
+    tryGetCurrentPosition(fallback, onSuccess, (fallbackErr) => {
+      void resolveGeolocationErrorMessage(fallbackErr).then((message) => onError?.(message));
+    });
+  });
 }
 
 export type GeolocationPermissionState = 'granted' | 'denied' | 'prompt' | 'unknown';
