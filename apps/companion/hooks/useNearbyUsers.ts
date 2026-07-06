@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { NearbyUserDto } from '@/lib/companions/build-list';
 
-const REFRESH_MS = 90_000;
+const REFRESH_MS = 30_000;
 
 export function useNearbyUsers(enabled: boolean) {
   const [users, setUsers] = useState<NearbyUserDto[]>([]);

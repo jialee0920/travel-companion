@@ -221,16 +221,16 @@ export async function updateUserLocation(
 
 /** 1시간 이내 위치 갱신된 실가입자 (Region 무관, 5km 반경 필터는 클라이언트) */
 export async function listNearbyActiveUsers(excludeUserId?: string): Promise<AirtableUser[]> {
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const oneHourAgoMs = Date.now() - 60 * 60 * 1000;
   const users = await listAllRealUsers(excludeUserId);
 
-  return users.filter(
-    (user) =>
-      user.latitude != null &&
-      user.longitude != null &&
-      user.locationUpdatedAt != null &&
-      user.locationUpdatedAt >= oneHourAgo,
-  );
+  return users.filter((user) => {
+    if (user.latitude == null || user.longitude == null || !user.locationUpdatedAt) {
+      return false;
+    }
+    const updatedMs = new Date(user.locationUpdatedAt).getTime();
+    return !Number.isNaN(updatedMs) && updatedMs >= oneHourAgoMs;
+  });
 }
 
 export async function getOrCreateCompanionUser(

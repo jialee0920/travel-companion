@@ -50,8 +50,9 @@ export function HomeClient({ products }: Props) {
     : null;
   const displayPosition = position ?? fallbackPosition;
 
-  const { users: nearbyUsers } = useNearbyUsers(mapOrExplore && !!profile?.id && !!position);
-  useLocationReporter(position, mapOrExplore && !!profile?.id);
+  const nearbyEnabled = mapOrExplore && !!profile?.id && !!position;
+  const { users: nearbyUsers, refresh: refreshNearby } = useNearbyUsers(nearbyEnabled);
+  useLocationReporter(position, nearbyEnabled, refreshNearby);
 
   const companions = useMemo(
     () =>
