@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   queryGeolocationPermission,
   refreshGeolocation,
+  requestGeolocationFromUserGesture,
   watchGeolocationPermission,
   type GeoPosition,
   type GeolocationPermissionState,
@@ -47,22 +48,29 @@ export function useGeolocation(active: boolean, intervalMs = 90_000) {
   }, []);
 
   const startLoading = useCallback(() => {
+    failureCountRef.current = 0;
+    setUseRegionFallback(false);
     setLoading(true);
     setError(null);
     setLoadingMessage(null);
-    setUseRegionFallback(false);
     loadingRef.current = true;
   }, []);
 
+  // 사용자 제스처로 명시적 재시도 — fallback 상태·실패 카운터 초기화 후 GPS 재요청
   const retryFromUserGesture = useCallback(() => {
     if (!active) return;
     failureCountRef.current = 0;
-    setUseRegionFallback(false);
-    setError(null);
-    setLoading(true);
-    setLoadingMessage(null);
     loadingRef.current = true;
-  }, [active]);
+    setUseRegionFallback(false);
+    setLoading(true);
+    setError(null);
+    setLoadingMessage(null);
+
+    requestGeolocationFromUserGesture(
+      (next) => applyPosition(next),
+      (message) => reportError(message),
+    );
+  }, [active, applyPosition, reportError]);
 
   const retryWithFeedback = useCallback(
     (options?: { auto?: boolean; force?: boolean }) => {
