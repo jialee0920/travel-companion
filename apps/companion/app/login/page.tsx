@@ -17,7 +17,7 @@ export default function LoginPage() {
         </Link>
         <div>
           <h1 className="text-lg font-bold">로그인</h1>
-          <p className="text-xs text-muted-foreground">휴대폰 인증으로 간편 로그인</p>
+          <p className="text-xs text-muted-foreground">이름 · 연락처로 간편 로그인</p>
         </div>
       </header>
       <Suspense

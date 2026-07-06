@@ -1,5 +1,3 @@
-import { upsertProfile } from '@/lib/db/profiles';
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { normalizePhone } from '@/lib/user-profile';
 import { upsertUser } from '@/lib/airtable/users';
 import type { SessionUser } from './session';
@@ -13,20 +11,13 @@ export async function completeLogin(input: {
   const name = input.name.trim();
   const region = input.region;
 
-  const airtableUser = await upsertUser({ phone, name, region });
-
-  let appUserId = airtableUser.id;
-
-  if (getSupabaseAdmin()) {
-    const supabaseProfile = await upsertProfile({ phone, name, region });
-    appUserId = supabaseProfile.id;
-  }
+  const user = await upsertUser({ phone, name, region });
 
   return {
-    id: appUserId,
-    phone,
-    name,
-    region,
-    airtableId: airtableUser.id,
+    id: user.id,
+    phone: user.phone,
+    name: user.name,
+    region: user.region,
+    airtableId: user.id,
   };
 }

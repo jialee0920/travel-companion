@@ -6,15 +6,15 @@ export type AirtableConfig = {
 };
 
 export function getAirtableConfig(): AirtableConfig | null {
-  const token = process.env.AIRTABLE_PERSONAL_ACCESS_TOKEN;
-  const baseId = process.env.AIRTABLE_BASE_ID;
+  const token = process.env.AIRTABLE_PERSONAL_ACCESS_TOKEN?.trim();
+  const baseId = process.env.AIRTABLE_BASE_ID?.trim();
   if (!token || !baseId) return null;
 
   return {
     token,
     baseId,
-    usersTable: process.env.AIRTABLE_USERS_TABLE ?? 'Users',
-    otpTable: process.env.AIRTABLE_OTP_CODES_TABLE ?? 'OTP_Codes',
+    usersTable: process.env.AIRTABLE_USERS_TABLE?.trim() || 'Users',
+    otpTable: process.env.AIRTABLE_OTP_CODES_TABLE?.trim() || 'OTP_Codes',
   };
 }
 
