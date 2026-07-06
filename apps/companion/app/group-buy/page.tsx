@@ -2,12 +2,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronLeft, Receipt } from 'lucide-react';
 import { getRegion } from '@/lib/regions';
+import { listProducts } from '@/lib/db/products';
 import { GroupBuyCard } from '@/components/GroupBuyCard';
 import { PageShell } from '@/components/PageShell';
 
 const region = getRegion();
 
-export default function GroupBuyPage() {
+export default async function GroupBuyPage() {
+  const products = await listProducts();
+
   return (
     <PageShell active="group-buy">
       <header className="flex items-center gap-3 px-4 pt-12 pb-4">
@@ -45,7 +48,7 @@ export default function GroupBuyPage() {
       </div>
 
       <div className="flex flex-col gap-3 px-4 pb-28">
-        {region.products.map((product) => (
+        {products.map((product) => (
           <GroupBuyCard key={product.id} product={product} />
         ))}
       </div>

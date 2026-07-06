@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ChevronLeft, Store } from 'lucide-react';
-import { getProductById } from '@/lib/regions';
+import { getProductById } from '@/lib/db/products';
 import { GroupBuyWidget } from '@/components/GroupBuyWidget';
 import { listParticipants } from '@/lib/db/orders';
 
@@ -12,7 +12,7 @@ type Props = {
 
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
-  const product = getProductById(id);
+  const product = await getProductById(id);
   if (!product) notFound();
 
   const participants = await listParticipants(id);

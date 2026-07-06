@@ -36,7 +36,9 @@ async function airtableFetch<T>(
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Airtable API 오류 (${res.status}): ${body}`);
+    throw new Error(
+      `Airtable API 오류 (${res.status}) [base=${config.baseId}, table=${table}]: ${body}`,
+    );
   }
 
   return res.json() as Promise<T>;

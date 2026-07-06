@@ -3,19 +3,29 @@ export type AirtableConfig = {
   baseId: string;
   usersTable: string;
   otpTable: string;
+  productsTable: string;
+  ordersTable: string;
+  participantsTable: string;
 };
 
 export function getAirtableConfig(): AirtableConfig | null {
-  const token = process.env.AIRTABLE_PERSONAL_ACCESS_TOKEN?.trim();
-  const baseId = process.env.AIRTABLE_BASE_ID?.trim();
+  const token = cleanEnv(process.env.AIRTABLE_PERSONAL_ACCESS_TOKEN);
+  const baseId = cleanEnv(process.env.AIRTABLE_BASE_ID);
   if (!token || !baseId) return null;
 
   return {
     token,
     baseId,
-    usersTable: process.env.AIRTABLE_USERS_TABLE?.trim() || 'Users',
-    otpTable: process.env.AIRTABLE_OTP_CODES_TABLE?.trim() || 'OTP_Codes',
+    usersTable: cleanEnv(process.env.AIRTABLE_USERS_TABLE) || 'Users',
+    otpTable: cleanEnv(process.env.AIRTABLE_OTP_CODES_TABLE) || 'OTP_Codes',
+    productsTable: cleanEnv(process.env.AIRTABLE_PRODUCTS_TABLE) || 'Products',
+    ordersTable: cleanEnv(process.env.AIRTABLE_ORDERS_TABLE) || 'Orders',
+    participantsTable: cleanEnv(process.env.AIRTABLE_PARTICIPANTS_TABLE) || 'Participants',
   };
+}
+
+function cleanEnv(value: string | undefined): string {
+  return value?.trim().replace(/^['"]|['"]$/g, '') ?? '';
 }
 
 export function requireAirtableConfig(): AirtableConfig {

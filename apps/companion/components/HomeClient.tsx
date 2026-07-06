@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Bell, Search } from 'lucide-react';
 import { getRegion } from '@/lib/regions';
-import type { CategoryFilter, RegionCompanion } from '@/lib/regions/types';
+import type { CategoryFilter, RegionCompanion, RegionProduct } from '@/lib/regions/types';
 import {
   bearingDegrees,
   haversineDistanceKm,
@@ -20,6 +20,10 @@ import { LocationConsentBanner } from '@/components/LocationConsentBanner';
 
 const region = getRegion();
 
+type Props = {
+  products: RegionProduct[];
+};
+
 function enrichCompanion(
   c: RegionCompanion,
   userLat?: number,
@@ -32,7 +36,7 @@ function enrichCompanion(
   };
 }
 
-export function HomeClient() {
+export function HomeClient({ products }: Props) {
   const { consented, accept, decline, ready } = useLocationConsent();
   const geoEnabled = consented === true;
   const { position } = useGeolocation(geoEnabled);
@@ -83,7 +87,7 @@ export function HomeClient() {
         <CategoryFilterBar active={category} onChange={setCategory} />
       )}
 
-      {tab === 'map' && <GroupBuySection products={region.products} variant="home" />}
+      {tab === 'map' && <GroupBuySection products={products} variant="home" />}
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {tab === 'map' && (

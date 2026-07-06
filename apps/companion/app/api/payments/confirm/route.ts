@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { upsertUser } from '@/lib/airtable/users';
+import { getProductById } from '@/lib/db/products';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
@@ -40,13 +41,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { updateOrderPayment, addParticipant, incrementProductCount } = await import(
+    const { updateOrderPayment, addParticipant, incrementProductCount, saveOrder } = await import(
       '@/lib/db/orders'
     );
     const { generateOrderCode } = await import('@/lib/geo');
-    const { upsertProfile } = await import('@/lib/db/profiles');
 
-    const profile = await upsertProfile({
+    const user = await upsertUser({
       name,
       phone,
       region: region ?? 'mukho',
@@ -55,23 +55,22 @@ export async function POST(request: NextRequest) {
     const order = await updateOrderPayment(merchantUid, {
       payment_status: 'paid',
       imp_uid: impUid,
-      profile_id: profile.id,
+      profile_id: user.id,
     });
 
     if (order) {
       await addParticipant({
         product_id: productId,
-        profile_id: profile.id,
+        profile_id: user.id,
         display_name: name.slice(0, 1) + '**',
         order_code: order.order_code,
       });
       await incrementProductCount(productId);
     } else {
-      const { saveOrder } = await import('@/lib/db/orders');
       const orderCode = generateOrderCode();
       await saveOrder({
         order_code: orderCode,
-        profile_id: profile.id,
+        profile_id: user.id,
         product_id: productId,
         product_name: productName,
         participant_name: name,
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
       });
       await addParticipant({
         product_id: productId,
-        profile_id: profile.id,
+        profile_id: user.id,
         display_name: name.slice(0, 1) + '**',
         order_code: orderCode,
       });
@@ -98,13 +97,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(request: Request) {
   try {
     const body = await request.json();
     const { saveOrder } = await import('@/lib/db/orders');
     const { generateOrderCode, perPersonCharge } = await import('@/lib/geo');
-    const { getProductById } = await import('@/lib/regions');
-    const { upsertProfile } = await import('@/lib/db/profiles');
+    const { upsertUser } = await import('@/lib/airtable/users');
 
     const { productId, name, phone, region = 'mukho', profileId } = body as {
       productId?: string;
@@ -118,7 +116,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: '참여 정보를 입력해주세요.' }, { status: 400 });
     }
 
-    const product = getProductById(productId, region);
+    const product = await getProductById(productId, region);
     if (!product) {
       return NextResponse.json({ error: '상품을 찾을 수 없습니다.' }, { status: 404 });
     }
@@ -132,8 +130,8 @@ export async function PUT(request: NextRequest) {
 
     let resolvedProfileId = profileId;
     if (!resolvedProfileId) {
-      const profile = await upsertProfile({ name, phone, region });
-      resolvedProfileId = profile.id;
+      const user = await upsertUser({ name, phone, region });
+      resolvedProfileId = user.id;
     }
 
     await saveOrder({

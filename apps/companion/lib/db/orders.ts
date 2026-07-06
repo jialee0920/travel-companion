@@ -1,32 +1,23 @@
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { toOrderInsert, toOrderUpdate, toParticipantInsert } from '@/lib/supabase/rows';
-import type { ProductRow } from '@/lib/supabase/types';
+import { getAirtableConfig } from '@/lib/airtable/config';
+import {
+  addParticipant as addAirtableParticipant,
+  listParticipants as listAirtableParticipants,
+  type ParticipantRecord,
+} from '@/lib/airtable/participants';
+import {
+  incrementProductCount as incrementAirtableProductCount,
+} from '@/lib/airtable/products';
+import {
+  listOrders as listAirtableOrders,
+  listOrdersByPhone as listAirtableOrdersByPhone,
+  listOrdersByProfileId as listAirtableOrdersByProfileId,
+  saveOrder as saveAirtableOrder,
+  updateOrderPayment as updateAirtableOrderPayment,
+  type OrderRecord,
+} from '@/lib/airtable/orders';
 import { normalizePhone } from '@/lib/user-profile';
 
-export type OrderRecord = {
-  id: string;
-  order_code: string;
-  profile_id?: string | null;
-  product_id: string;
-  product_name: string;
-  participant_name: string;
-  participant_phone: string;
-  region: string;
-  amount: number;
-  payment_status: 'pending' | 'paid' | 'failed';
-  imp_uid?: string | null;
-  merchant_uid?: string | null;
-  created_at: string;
-};
-
-export type ParticipantRecord = {
-  id: string;
-  profile_id?: string | null;
-  product_id: string;
-  display_name: string;
-  order_code: string;
-  created_at: string;
-};
+export type { OrderRecord, ParticipantRecord };
 
 const memoryOrders: OrderRecord[] = [];
 const memoryParticipants: ParticipantRecord[] = [];
@@ -34,23 +25,15 @@ const memoryParticipants: ParticipantRecord[] = [];
 export async function saveOrder(
   order: Omit<OrderRecord, 'id' | 'created_at'>,
 ): Promise<OrderRecord> {
-  const supabase = getSupabaseAdmin();
+  if (getAirtableConfig()) {
+    return saveAirtableOrder(order);
+  }
+
   const row: OrderRecord = {
     ...order,
     id: crypto.randomUUID(),
     created_at: new Date().toISOString(),
   };
-
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('orders')
-      .insert(toOrderInsert(row))
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data as OrderRecord;
-  }
-
   memoryOrders.unshift(row);
   return row;
 }
@@ -59,17 +42,8 @@ export async function updateOrderPayment(
   merchantUid: string,
   patch: Partial<Pick<OrderRecord, 'payment_status' | 'imp_uid' | 'profile_id'>>,
 ): Promise<OrderRecord | null> {
-  const supabase = getSupabaseAdmin();
-
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('orders')
-      .update(toOrderUpdate(patch))
-      .eq('merchant_uid', merchantUid)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data as OrderRecord;
+  if (getAirtableConfig()) {
+    return updateAirtableOrderPayment(merchantUid, patch);
   }
 
   const idx = memoryOrders.findIndex((o) => o.merchant_uid === merchantUid);
@@ -79,34 +53,23 @@ export async function updateOrderPayment(
 }
 
 export async function listOrders(): Promise<OrderRecord[]> {
-  const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as OrderRecord[];
+  if (getAirtableConfig()) {
+    return listAirtableOrders();
   }
   return [...memoryOrders];
 }
 
 export async function listOrdersByPhone(phone: string): Promise<OrderRecord[]> {
+  if (getAirtableConfig()) {
+    return listAirtableOrdersByPhone(phone);
+  }
   const normalized = normalizePhone(phone);
-  const orders = await listOrders();
-  return orders.filter((o) => normalizePhone(o.participant_phone) === normalized);
+  return memoryOrders.filter((o) => normalizePhone(o.participant_phone) === normalized);
 }
 
 export async function listOrdersByProfileId(profileId: string): Promise<OrderRecord[]> {
-  const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('profile_id', profileId)
-      .order('created_at', { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as OrderRecord[];
+  if (getAirtableConfig()) {
+    return listAirtableOrdersByProfileId(profileId);
   }
   return memoryOrders.filter((o) => o.profile_id === profileId);
 }
@@ -114,59 +77,29 @@ export async function listOrdersByProfileId(profileId: string): Promise<OrderRec
 export async function addParticipant(
   participant: Omit<ParticipantRecord, 'id' | 'created_at'>,
 ): Promise<ParticipantRecord> {
-  const supabase = getSupabaseAdmin();
+  if (getAirtableConfig()) {
+    return addAirtableParticipant(participant);
+  }
+
   const row: ParticipantRecord = {
     ...participant,
     id: crypto.randomUUID(),
     created_at: new Date().toISOString(),
   };
-
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('participants')
-      .insert(toParticipantInsert(row))
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data as ParticipantRecord;
-  }
-
   memoryParticipants.unshift(row);
   return row;
 }
 
 export async function listParticipants(productId: string): Promise<ParticipantRecord[]> {
-  const supabase = getSupabaseAdmin();
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('participants')
-      .select('*')
-      .eq('product_id', productId)
-      .order('created_at', { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as ParticipantRecord[];
+  if (getAirtableConfig()) {
+    return listAirtableParticipants(productId);
   }
   return memoryParticipants.filter((p) => p.product_id === productId);
 }
 
 export async function incrementProductCount(productId: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return;
-
-  const { data: product } = await supabase
-    .from('products')
-    .select('*')
-    .eq('id', productId)
-    .single();
-
-  if (!product) return;
-
-  const row = product as ProductRow;
-  const nextCount = row.current_count + 1;
-  const status = nextCount >= row.target_count ? 'success' : 'open';
-
-  await supabase
-    .from('products')
-    .update({ current_count: nextCount, group_buy_status: status })
-    .eq('id', productId);
+  if (getAirtableConfig()) {
+    await incrementAirtableProductCount(productId);
+    return;
+  }
 }
