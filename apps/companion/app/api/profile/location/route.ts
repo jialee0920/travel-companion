@@ -21,7 +21,14 @@ export async function PATCH(request: Request) {
     }
 
     const user = await updateUserLocation(session.id, lat, lng);
-    return NextResponse.json({ user: airtableUserToUserProfile(user) });
+    return NextResponse.json({
+      user: airtableUserToUserProfile(user),
+      location: {
+        lat: user.latitude,
+        lng: user.longitude,
+        location_updated_at: user.locationUpdatedAt,
+      },
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

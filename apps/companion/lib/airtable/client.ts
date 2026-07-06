@@ -85,11 +85,17 @@ export async function updateRecord<T extends Record<string, unknown>>(
   table: string,
   id: string,
   fields: Partial<T>,
+  options?: { typecast?: boolean },
 ): Promise<AirtableRecord<T>> {
   const config = requireAirtableConfig();
+  const payload: { records: { id: string; fields: Partial<T> }[]; typecast?: boolean } = {
+    records: [{ id, fields }],
+  };
+  if (options?.typecast) payload.typecast = true;
+
   const data = await airtableFetch<{ records: AirtableRecord<T>[] }>(config, table, {
     method: 'PATCH',
-    body: JSON.stringify({ records: [{ id, fields }] }),
+    body: JSON.stringify(payload),
   });
   return data.records[0];
 }
