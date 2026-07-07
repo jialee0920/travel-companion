@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server';
 import { verifyOtpCode } from '@/lib/airtable/otp-codes';
 import { completeLogin } from '@/lib/auth/complete-login';
 import { createSessionToken, sessionUserToProfile, setSessionCookie } from '@/lib/auth/session';
-import { DEFAULT_REGION_CODE } from '@/lib/regions';
+import { resolveRegionForStorage } from '@/lib/region-filter';
 import { normalizePhone } from '@/lib/user-profile';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { phone, code, name, region = DEFAULT_REGION_CODE } = body as {
+    const { phone, code, name, region } = body as {
       phone?: string;
       code?: string;
       name?: string;
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const user = await completeLogin({
       phone: normalizedPhone,
       name: name.trim(),
-      region,
+      region: resolveRegionForStorage(region),
     });
 
     const token = await createSessionToken(user);

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, MessageCircle, Plus, User } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { getRegion, DEFAULT_REGION_CODE } from '@/lib/regions';
+import { getRegion } from '@/lib/regions';
 import type { ChatRoomWithPeer } from '@/lib/chat/types';
 import { cn } from '@/lib/utils';
 
@@ -71,7 +71,7 @@ export function ChatRoomList() {
     let cancelled = false;
     setLoadingRealUsers(true);
 
-    fetch(`/api/users?region=${encodeURIComponent(DEFAULT_REGION_CODE)}`)
+    fetch('/api/users')
       .then((r) => r.json())
       .then((data) => {
         if (cancelled) return;
@@ -96,7 +96,7 @@ export function ChatRoomList() {
         body: JSON.stringify({
           myProfileId: profile.id,
           companionSeedId,
-          region: DEFAULT_REGION_CODE,
+          ...(profile.region ? { region: profile.region } : {}),
         }),
       });
       const data = await res.json();
@@ -119,7 +119,7 @@ export function ChatRoomList() {
         body: JSON.stringify({
           myProfileId: profile.id,
           peerProfileId,
-          region: DEFAULT_REGION_CODE,
+          ...(profile.region ? { region: profile.region } : {}),
         }),
       });
       const data = await res.json();

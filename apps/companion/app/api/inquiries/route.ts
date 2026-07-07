@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { saveInquiry } from '@/lib/db/inquiries';
+import { resolveRegionForStorage } from '@/lib/region-filter';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, phone, message, region = 'mukho' } = body as {
+    const { name, phone, message, region } = body as {
       name?: string;
       phone?: string;
       message?: string;
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
       name: name.trim(),
       phone: phone.trim(),
       message: message.trim(),
-      region,
+      region: resolveRegionForStorage(region),
     });
 
     return NextResponse.json({ success: true, id: inquiry.id });

@@ -4,6 +4,7 @@ import { getProductById } from '@/lib/db/products';
 import { generateOrderCode, perPersonCharge } from '@/lib/geo';
 import { completeOrderAfterPayment } from '@/lib/payments/complete-order';
 import { getPaymentProvider } from '@/lib/payments/provider';
+import { resolveRegionForStorage } from '@/lib/region-filter';
 import { upsertUser } from '@/lib/airtable/users';
 
 /** PG 승인 완료 후 Orders·Participants 저장 (returnUrl 외 수동 확인용) */
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
       phone,
       productId,
       productName,
-      region: region ?? 'mukho',
+      region: resolveRegionForStorage(region),
     });
 
     return NextResponse.json({ success: true });
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { productId, name, phone, region = 'mukho', profileId } = body as {
+    const { productId, name, phone, region, profileId } = body as {
       productId?: string;
       name?: string;
       phone?: string;
@@ -93,7 +94,8 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: '참여 정보를 입력해주세요.' }, { status: 400 });
     }
 
-    const product = await getProductById(productId, region);
+    const resolvedRegion = resolveRegionForStorage(region);
+    const product = await getProductById(productId, resolvedRegion);
     if (!product) {
       return NextResponse.json({ error: '상품을 찾을 수 없습니다.' }, { status: 404 });
     }
@@ -110,7 +112,7 @@ export async function PUT(request: Request) {
 
     let resolvedProfileId = profileId;
     if (!resolvedProfileId) {
-      const user = await upsertUser({ name, phone, region });
+      const user = await upsertUser({ name, phone, region: resolvedRegion });
       resolvedProfileId = user.id;
     }
 
@@ -121,7 +123,7 @@ export async function PUT(request: Request) {
       product_name: product.name,
       participant_name: name,
       participant_phone: phone,
-      region,
+      region: resolvedRegion,
       amount,
       payment_status: 'pending',
       merchant_uid: merchantUid,

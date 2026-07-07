@@ -1,4 +1,8 @@
 import { DEFAULT_REGION_CODE } from '@/lib/regions';
+import {
+  airtableRegionFormula,
+  isRegionFilterEnabled,
+} from '@/lib/region-filter';
 import type { GroupBuyStatus, RegionProduct } from '@/lib/regions/types';
 import { createRecord, escapeAirtableFormula, listRecords, updateRecord } from './client';
 import { requireAirtableConfig } from './config';
@@ -42,7 +46,9 @@ export async function findProductRecordByProductId(
 
 export async function listProducts(region = DEFAULT_REGION_CODE): Promise<RegionProduct[]> {
   const config = requireAirtableConfig();
-  const formula = `{Region}="${escapeAirtableFormula(region)}"`;
+  const formula = isRegionFilterEnabled()
+    ? airtableRegionFormula(region, escapeAirtableFormula)
+    : undefined;
   const records = await listRecords<AirtableProductFields>(config.productsTable, {
     filterByFormula: formula,
   });

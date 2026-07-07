@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getOrCreateChatRoom, listChatRooms } from '@/lib/db/chat';
+import { getSessionUser } from '@/lib/auth/session';
+import { resolveRegionForStorage } from '@/lib/region-filter';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -20,7 +22,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { myProfileId, peerProfileId, companionSeedId, region = 'mukho' } = body as {
+    const { myProfileId, peerProfileId, companionSeedId, region } = body as {
       myProfileId?: string;
       peerProfileId?: string;
       companionSeedId?: string;
@@ -31,11 +33,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'myProfileId 필요' }, { status: 400 });
     }
 
+    const session = await getSessionUser();
+    const resolvedRegion = resolveRegionForStorage(region ?? session?.region);
+
     const room = await getOrCreateChatRoom({
       myProfileId,
       peerProfileId,
       companionSeedId,
-      region,
+      region: resolvedRegion,
     });
 
     return NextResponse.json({ room });

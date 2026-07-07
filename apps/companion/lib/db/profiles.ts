@@ -6,11 +6,15 @@ import {
   upsertUser,
 } from '@/lib/airtable/users';
 import type { ProfileRow } from '@/lib/chat/types';
+import { isRegionFilterEnabled, resolveRegionForStorage } from '@/lib/region-filter';
 
 const memoryProfiles = new Map<string, ProfileRow>();
 
 function memKey(phone: string, region: string) {
-  return `${region}:${phone.replace(/\D/g, '')}`;
+  const normalized = phone.replace(/\D/g, '');
+  // ENABLE_REGION_FILTER=true 일 때만 region+phone 복합 키
+  if (isRegionFilterEnabled()) return `${region}:${normalized}`;
+  return normalized;
 }
 
 export async function upsertProfile(input: {
@@ -25,7 +29,7 @@ export async function upsertProfile(input: {
 
   const phone = input.phone.trim();
   const name = input.name.trim();
-  const region = input.region;
+  const region = resolveRegionForStorage(input.region);
   const key = memKey(phone, region);
   const row: ProfileRow = {
     id: memoryProfiles.get(key)?.id ?? crypto.randomUUID(),

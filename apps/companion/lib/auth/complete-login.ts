@@ -1,4 +1,5 @@
 import { normalizePhone } from '@/lib/user-profile';
+import { resolveRegionForStorage } from '@/lib/region-filter';
 import { upsertKakaoUser, upsertUser } from '@/lib/airtable/users';
 import type { SessionUser } from './session';
 
@@ -9,7 +10,7 @@ export async function completeLogin(input: {
 }): Promise<SessionUser> {
   const phone = normalizePhone(input.phone);
   const name = input.name.trim();
-  const region = input.region;
+  const region = resolveRegionForStorage(input.region);
 
   const user = await upsertUser({ phone, name, region });
 
@@ -28,7 +29,10 @@ export async function completeKakaoLogin(input: {
   region: string;
   avatarUrl?: string | null;
 }): Promise<SessionUser> {
-  const user = await upsertKakaoUser(input);
+  const user = await upsertKakaoUser({
+    ...input,
+    region: resolveRegionForStorage(input.region),
+  });
 
   return {
     id: user.id,

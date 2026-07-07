@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { listRealUsers } from '@/lib/airtable/users';
 import { getSessionUser } from '@/lib/auth/session';
-import { DEFAULT_REGION_CODE } from '@/lib/regions';
+import { resolveRegionForStorage } from '@/lib/region-filter';
 
 export async function GET(request: Request) {
   const session = await getSessionUser();
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const region = searchParams.get('region') ?? session.region ?? DEFAULT_REGION_CODE;
+  const region = resolveRegionForStorage(searchParams.get('region') ?? session.region);
 
   try {
     const users = await listRealUsers(region, session.id);

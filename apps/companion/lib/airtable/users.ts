@@ -1,4 +1,10 @@
 import { getRegion } from '@/lib/regions';
+import {
+  airtableAndFormula,
+  airtableRegionFormula,
+  isRegionFilterEnabled,
+  resolveRegionForStorage,
+} from '@/lib/region-filter';
 import { normalizePhone } from '@/lib/user-profile';
 import type { ProfileRow } from '@/lib/chat/types';
 import {
@@ -135,7 +141,10 @@ export async function findUserByPhone(phone: string, region: string): Promise<Ai
   if (!config) return null;
 
   const normalized = normalizePhone(phone);
-  const formula = `AND({Phone}="${escapeAirtableFormula(normalized)}",{Region}="${escapeAirtableFormula(region)}")`;
+  const formula = airtableAndFormula(
+    `{Phone}="${escapeAirtableFormula(normalized)}"`,
+    airtableRegionFormula(region, escapeAirtableFormula),
+  );
   const records = await listRecords<AirtableUserFields>(config.usersTable, {
     filterByFormula: formula,
     maxRecords: 1,
@@ -145,13 +154,17 @@ export async function findUserByPhone(phone: string, region: string): Promise<Ai
   return mapUser(records[0]);
 }
 
-/** 실제 가입자 — Companion Seed ID 없음, seed: 전화번호 제외 */
+/** 실제 가입자 — ENABLE_REGION_FILTER=true 일 때만 Region 조건 적용 */
 export async function listRealUsers(
   region: string,
   excludeUserId?: string,
 ): Promise<AirtableUser[]> {
+  if (!isRegionFilterEnabled()) {
+    return listAllRealUsers(excludeUserId);
+  }
+
   const config = requireAirtableConfig();
-  const formula = `{Region}="${escapeAirtableFormula(region)}"`;
+  const formula = airtableRegionFormula(region, escapeAirtableFormula);
   const records = await listRecords<AirtableUserFields>(config.usersTable, {
     filterByFormula: formula,
   });
@@ -190,7 +203,7 @@ export async function upsertUser(input: {
   const config = requireAirtableConfig();
   const phone = normalizePhone(input.phone);
   const name = input.name.trim();
-  const region = input.region;
+  const region = resolveRegionForStorage(input.region);
 
   const existing = await findUserByPhone(phone, region);
   if (existing) {
@@ -219,7 +232,7 @@ export async function upsertKakaoUser(input: {
   const config = requireAirtableConfig();
   const kakaoId = input.kakaoId.trim();
   const name = input.name.trim() || `카카오${kakaoId}`;
-  const region = input.region;
+  const region = resolveRegionForStorage(input.region);
 
   const existing = await findUserByKakaoId(kakaoId);
   if (existing) {

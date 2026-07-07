@@ -17,7 +17,6 @@ import { categoryLabel } from '@/lib/companions/build-list';
 import type { CompanionListItem } from '@/lib/companions/types';
 import { getCategoryBadgeClass } from '@/lib/design-system';
 import { formatDistance, temperatureLabel } from '@/lib/geo';
-import { DEFAULT_REGION_CODE } from '@/lib/regions';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { TemperatureRing } from './TemperatureRing';
 
@@ -54,12 +53,12 @@ export function CompanionDetailSheet({ companion, onClose }: Props) {
           ? {
               myProfileId: profile.id,
               peerProfileId: companion.peerProfileId,
-              region: DEFAULT_REGION_CODE,
+              ...(profile.region ? { region: profile.region } : {}),
             }
           : {
               myProfileId: profile.id,
               companionSeedId: companion.companionSeedId ?? companion.id,
-              region: DEFAULT_REGION_CODE,
+              ...(profile.region ? { region: profile.region } : {}),
             };
 
       const res = await fetch('/api/chat/rooms', {

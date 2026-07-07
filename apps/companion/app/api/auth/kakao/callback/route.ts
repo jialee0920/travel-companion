@@ -5,7 +5,7 @@ import { exchangeKakaoCodeForToken, fetchKakaoUserProfile } from '@/lib/auth/kak
 import { getKakaoRedirectUri } from '@/lib/auth/kakao-config';
 import { safeReturnUrl, verifyKakaoOAuthState } from '@/lib/auth/kakao-oauth-state';
 import { createSessionToken, setSessionCookie } from '@/lib/auth/session';
-import { DEFAULT_REGION_CODE } from '@/lib/regions';
+import { defaultRegionCode } from '@/lib/region-filter';
 
 function redirectToLogin(request: Request, message: string, returnUrl = '/') {
   const origin = new URL(request.url).origin;
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     const sessionUser = await completeKakaoLogin({
       kakaoId: profile.kakaoId,
       name: profile.nickname,
-      region: DEFAULT_REGION_CODE,
+      region: defaultRegionCode(),
       avatarUrl: profile.avatarUrl,
     });
 

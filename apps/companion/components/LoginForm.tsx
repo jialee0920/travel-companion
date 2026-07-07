@@ -3,7 +3,6 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2, Phone, User } from 'lucide-react';
-import { DEFAULT_REGION_CODE } from '@/lib/regions';
 
 function safeReturnUrl(url: string | null): string {
   if (!url || !url.startsWith('/') || url.startsWith('//')) return '/';
@@ -38,7 +37,6 @@ export function LoginForm() {
         body: JSON.stringify({
           name: name.trim(),
           phone: phone.trim(),
-          region: DEFAULT_REGION_CODE,
         }),
       });
       const data = await res.json();

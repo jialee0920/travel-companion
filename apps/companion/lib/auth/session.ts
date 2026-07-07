@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import type { NextResponse } from 'next/server';
 import { SESSION_COOKIE_NAME, SESSION_MAX_AGE_SEC, requireAuthSessionSecret } from './constants';
+import { defaultRegionCode } from '@/lib/region-filter';
 
 export type SessionUser = {
   id: string;
@@ -42,7 +43,7 @@ export async function verifySessionToken(token: string): Promise<SessionUser> {
     id: sub,
     phone: String(payload.phone ?? ''),
     name: String(payload.name ?? ''),
-    region: String(payload.region ?? 'mukho'),
+    region: String(payload.region ?? defaultRegionCode()),
     airtableId: payload.airtableId ? String(payload.airtableId) : undefined,
   };
 }

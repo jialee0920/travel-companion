@@ -4,7 +4,8 @@ import {
   listProducts as listAirtableProducts,
   seedProductsIfEmpty,
 } from '@/lib/airtable/products';
-import { DEFAULT_REGION_CODE, getRegion } from '@/lib/regions';
+import { DEFAULT_REGION_CODE, getAllRegions, getRegion } from '@/lib/regions';
+import { isRegionFilterEnabled } from '@/lib/region-filter';
 import type { RegionProduct } from '@/lib/regions/types';
 
 export async function listProducts(region = DEFAULT_REGION_CODE): Promise<RegionProduct[]> {
@@ -12,7 +13,9 @@ export async function listProducts(region = DEFAULT_REGION_CODE): Promise<Region
     await seedProductsIfEmpty(region);
     return listAirtableProducts(region);
   }
-  return getRegion(region).products;
+  return isRegionFilterEnabled()
+    ? getRegion(region).products
+    : getAllRegions().flatMap((r) => r.products);
 }
 
 export async function getProductById(
@@ -24,7 +27,9 @@ export async function getProductById(
     const product = await getAirtableProductById(productId, region);
     if (product) return product;
   }
-  return getRegion(region).products.find((p) => p.id === productId) ?? null;
+  return isRegionFilterEnabled()
+    ? (getRegion(region).products.find((p) => p.id === productId) ?? null)
+    : (getAllRegions().flatMap((r) => r.products).find((p) => p.id === productId) ?? null);
 }
 
 export { seedProductsIfEmpty } from '@/lib/airtable/products';

@@ -5,7 +5,7 @@ const REGIONS: Record<string, RegionConfig> = {
   [mukhoRegion.code]: mukhoRegion,
 };
 
-/** 기본 서비스 지역 (추후 region 코드만 추가하면 확장 가능) */
+/** 기본 서비스 지역 (추후 region 코드만 추가하면 확장 가능). 조회 필터는 lib/region-filter.ts 참고 */
 export const DEFAULT_REGION_CODE = 'mukho';
 
 export function getRegion(code: string = DEFAULT_REGION_CODE): RegionConfig {

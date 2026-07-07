@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { clearUserProfile, type UserProfile } from '@/lib/user-profile';
-import { DEFAULT_REGION_CODE } from '@/lib/regions';
 
 export function useUserProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -25,13 +24,17 @@ export function useUserProfile() {
     refresh();
   }, [refresh]);
 
-  const login = useCallback(async (name: string, phone: string, region = DEFAULT_REGION_CODE) => {
+  const login = useCallback(async (name: string, phone: string, region?: string) => {
     setLoading(true);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, region }),
+        body: JSON.stringify({
+          name,
+          phone,
+          ...(region ? { region } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? '로그인 실패');

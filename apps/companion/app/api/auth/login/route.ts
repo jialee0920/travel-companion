@@ -3,13 +3,13 @@ import { completeLogin } from '@/lib/auth/complete-login';
 import { createSessionToken, setSessionCookie } from '@/lib/auth/session';
 import { getUserById } from '@/lib/airtable/users';
 import { airtableUserToUserProfile } from '@/lib/profile/transform';
-import { DEFAULT_REGION_CODE } from '@/lib/regions';
+import { resolveRegionForStorage } from '@/lib/region-filter';
 import { normalizePhone } from '@/lib/user-profile';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, phone, region = DEFAULT_REGION_CODE } = body as {
+    const { name, phone, region } = body as {
       name?: string;
       phone?: string;
       region?: string;
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const user = await completeLogin({
       name: name.trim(),
       phone: normalizedPhone,
-      region,
+      region: resolveRegionForStorage(region),
     });
 
     const token = await createSessionToken(user);
