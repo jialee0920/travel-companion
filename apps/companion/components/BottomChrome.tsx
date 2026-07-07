@@ -3,7 +3,6 @@
 import type { NavTab } from '@/components/BottomNav';
 import { BottomNav } from '@/components/BottomNav';
 import { SiteFooter } from '@/components/SiteFooter';
-import { cn } from '@/lib/utils';
 
 type Props = {
   active?: NavTab;
@@ -18,9 +17,4 @@ export function BottomChrome({ active, hideNav, onNavChange }: Props) {
       {!hideNav && <BottomNav active={active} onChange={onNavChange} embedded />}
     </div>
   );
-}
-
-/** Scroll content padding above fixed BottomChrome (collapsed footer). */
-export function bottomChromePaddingClass(hideNav?: boolean) {
-  return cn(hideNav ? 'pb-24' : 'pb-36');
 }

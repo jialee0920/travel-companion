@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
-import { BottomChrome, bottomChromePaddingClass } from '@/components/BottomChrome';
+import { BottomChrome } from '@/components/BottomChrome';
+import { bottomChromePaddingClass } from '@/lib/bottom-chrome';
 import { listOrders } from '@/lib/db/orders';
 import { formatPrice } from '@/lib/geo';
 

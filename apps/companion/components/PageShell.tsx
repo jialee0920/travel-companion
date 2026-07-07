@@ -1,5 +1,6 @@
 import type { NavTab } from '@/components/BottomNav';
-import { BottomChrome, bottomChromePaddingClass } from '@/components/BottomChrome';
+import { BottomChrome } from '@/components/BottomChrome';
+import { bottomChromePaddingClass } from '@/lib/bottom-chrome';
 import { cn } from '@/lib/utils';
 
 type Props = {
