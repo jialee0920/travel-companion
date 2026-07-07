@@ -21,6 +21,7 @@ import { GroupBuySection } from '@/components/GroupBuySection';
 import { BottomChrome } from '@/components/BottomChrome';
 import type { NavTab } from '@/components/BottomNav';
 import { LocationAllowPrompt } from '@/components/LocationAllowPrompt';
+import { LocationConsentBanner } from '@/components/LocationConsentBanner';
 
 const region = getRegion();
 
@@ -29,7 +30,7 @@ type Props = {
 };
 
 export function HomeClient({ products }: Props) {
-  const { accept } = useLocationConsent();
+  const { accept, decline, consented, ready: consentReady } = useLocationConsent();
   const { profile } = useUserProfile();
   const [tab, setTab] = useState<NavTab>('map');
   const [category, setCategory] = useState<CategoryFilter>('all');
@@ -84,7 +85,9 @@ export function HomeClient({ products }: Props) {
       ? isNearRegionCenter(displayPosition.lat, displayPosition.lng, region.mapCenter)
       : true;
   // 지도 전체 오버레이: fallback 전(초기 상태)에만 표시. fallback 중에는 배너+버튼으로 처리
-  const showLocationOverlay = !position && !useRegionFallback;
+  const needsLocation = mapOrExplore && !position && !useRegionFallback;
+  const showConsentBanner = consentReady && consented === null && needsLocation;
+  const showLocationOverlay = needsLocation && consented !== null;
 
   function handleLocationSuccess(pos: Parameters<typeof applyPosition>[0]) {
     accept();
@@ -93,6 +96,12 @@ export function HomeClient({ products }: Props) {
 
   // fallback 배너의 "위치 다시 허용" 버튼 — fallback 상태 리셋 후 GPS 재요청
   function handleRetryGPS() {
+    accept();
+    retryFromUserGesture();
+  }
+
+  /** 앱 내 위치 동의 + iOS Safari 권한 요청 — 반드시 클릭 핸들러 안에서 동기 호출 */
+  function handleConsentAndRequestLocation() {
     accept();
     retryFromUserGesture();
   }
@@ -248,6 +257,13 @@ export function HomeClient({ products }: Props) {
       </div>
 
       <BottomChrome active={tab} onNavChange={setTab} />
+
+      {showConsentBanner && (
+        <LocationConsentBanner
+          onAccept={handleConsentAndRequestLocation}
+          onDecline={decline}
+        />
+      )}
 
       <CompanionDetailSheet companion={activeCompanion} onClose={() => setActiveId(null)} />
     </main>

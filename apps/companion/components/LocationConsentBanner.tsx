@@ -32,7 +32,7 @@ export function LocationConsentBanner({ onAccept, onDecline, declinedBefore = fa
                   onClick={onAccept}
                   className="flex-1 rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
                 >
-                  동의하고 위치 허용
+                  위치 허용하기
                 </button>
                 <button
                   type="button"

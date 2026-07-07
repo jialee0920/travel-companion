@@ -6,6 +6,7 @@ import {
   getLocationEnvironmentMessage,
   IOS_LOCATION_DENIED_HELP,
   isIosDevice,
+  isIosLocationDeniedMessage,
   requestGeolocationFromUserGesture,
   type GeoPosition,
 } from '@/lib/geo/browser-geolocation';
@@ -48,13 +49,12 @@ export function LocationAllowPrompt({
   function handleClick() {
     cleanupRef.current?.();
     cleanupRef.current = null;
-    // iOS: setState 전에 getCurrentPosition을 동기 호출해야 권한 창이 뜸
+    // iOS: setState(onStart) 전에 geolocation API를 동기 호출해야 권한 팝업이 뜸
     cleanupRef.current = requestGeolocationFromUserGesture(onSuccess, onError, onWatchStart);
     onStart();
   }
 
-  const showIosDeniedHint =
-    hasError && isIosDevice() && (error?.includes('거부') || error?.includes('aA'));
+  const showIosDeniedHint = hasError && isIosDevice() && isIosLocationDeniedMessage(error ?? '');
 
   const buttonLabel = loading
     ? loadingMessage || '요청 중…'
