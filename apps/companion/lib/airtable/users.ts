@@ -23,6 +23,8 @@ export type AirtableUserFields = {
   Latitude?: number;
   Longitude?: number;
   'Location Updated At'?: string;
+  'Kakao ID'?: string;
+  'Auth Provider'?: 'phone' | 'kakao';
 };
 
 export type AirtableUser = {
@@ -39,6 +41,8 @@ export type AirtableUser = {
   latitude: number | null;
   longitude: number | null;
   locationUpdatedAt: string | null;
+  kakaoId: string | null;
+  authProvider: 'phone' | 'kakao' | null;
 };
 
 function parseNumberField(value: unknown): number | null {
@@ -65,6 +69,8 @@ function mapUser(record: { id: string; fields: AirtableUserFields }): AirtableUs
     latitude: parseNumberField(record.fields.Latitude),
     longitude: parseNumberField(record.fields.Longitude),
     locationUpdatedAt: record.fields['Location Updated At'] ?? null,
+    kakaoId: record.fields['Kakao ID']?.trim() || null,
+    authProvider: record.fields['Auth Provider'] ?? null,
   };
 }
 
@@ -101,6 +107,20 @@ export async function findUserByCompanionSeedId(
   if (!config) return null;
 
   const formula = `{Companion Seed ID}="${escapeAirtableFormula(companionSeedId)}"`;
+  const records = await listRecords<AirtableUserFields>(config.usersTable, {
+    filterByFormula: formula,
+    maxRecords: 1,
+  });
+
+  if (records.length === 0) return null;
+  return mapUser(records[0]);
+}
+
+export async function findUserByKakaoId(kakaoId: string): Promise<AirtableUser | null> {
+  const config = getAirtableConfig();
+  if (!config) return null;
+
+  const formula = `{Kakao ID}="${escapeAirtableFormula(kakaoId)}"`;
   const records = await listRecords<AirtableUserFields>(config.usersTable, {
     filterByFormula: formula,
     maxRecords: 1,
@@ -148,11 +168,12 @@ export async function listAllRealUsers(excludeUserId?: string): Promise<Airtable
 }
 
 function isRealUser(user: AirtableUser): boolean {
-  const phone = user.phone.trim();
-  if (!phone) return false;
   if (user.companionSeedId) return false;
+  const phone = user.phone.trim();
   if (phone.startsWith('seed:')) return false;
-  return true;
+  if (user.kakaoId) return true;
+  if (phone) return true;
+  return false;
 }
 
 function filterRealUsers(users: AirtableUser[], excludeUserId?: string): AirtableUser[] {
@@ -184,6 +205,40 @@ export async function upsertUser(input: {
     Phone: phone,
     Name: name,
     Region: region,
+    'Auth Provider': 'phone',
+  });
+  return mapUser(created);
+}
+
+export async function upsertKakaoUser(input: {
+  kakaoId: string;
+  name: string;
+  region: string;
+  avatarUrl?: string | null;
+}): Promise<AirtableUser> {
+  const config = requireAirtableConfig();
+  const kakaoId = input.kakaoId.trim();
+  const name = input.name.trim() || `카카오${kakaoId}`;
+  const region = input.region;
+
+  const existing = await findUserByKakaoId(kakaoId);
+  if (existing) {
+    const fields: Partial<AirtableUserFields> = {};
+    if (existing.name !== name) fields.Name = name;
+    if (input.avatarUrl && existing.avatarUrl !== input.avatarUrl) {
+      fields['Avatar URL'] = input.avatarUrl;
+    }
+    if (Object.keys(fields).length === 0) return existing;
+    const updated = await updateRecord<AirtableUserFields>(config.usersTable, existing.id, fields);
+    return mapUser(updated);
+  }
+
+  const created = await createRecord<AirtableUserFields>(config.usersTable, {
+    Name: name,
+    Region: region,
+    'Kakao ID': kakaoId,
+    'Auth Provider': 'kakao',
+    'Avatar URL': input.avatarUrl ?? undefined,
   });
   return mapUser(created);
 }

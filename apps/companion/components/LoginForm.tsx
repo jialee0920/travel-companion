@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2, Phone, User } from 'lucide-react';
 import { DEFAULT_REGION_CODE } from '@/lib/regions';
 
@@ -14,11 +14,18 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = safeReturnUrl(searchParams.get('returnUrl'));
+  const oauthError = searchParams.get('error');
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (oauthError) setError(oauthError);
+  }, [oauthError]);
+
+  const kakaoLoginUrl = `/api/auth/kakao?returnUrl=${encodeURIComponent(returnUrl)}`;
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -54,6 +61,22 @@ export function LoginForm() {
       <p className="text-sm leading-relaxed text-muted-foreground">
         이름과 연락처만 입력하면 바로 이용할 수 있어요. (별도 비밀번호 없음)
       </p>
+
+      <a
+        href={kakaoLoginUrl}
+        className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#FEE500] text-base font-semibold text-[#191919]"
+      >
+        <span aria-hidden className="text-lg leading-none">
+          💬
+        </span>
+        카카오로 로그인하기
+      </a>
+
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        또는
+        <span className="h-px flex-1 bg-border" />
+      </div>
 
       <form onSubmit={handleLogin} className="flex flex-col gap-4">
         <label className="block">
