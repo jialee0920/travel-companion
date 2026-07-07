@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { Bell, Search } from 'lucide-react';
 import { getRegion } from '@/lib/regions';
 import type { CategoryFilter, RegionProduct } from '@/lib/regions/types';
@@ -117,9 +118,18 @@ export function HomeClient({ products }: Props) {
   return (
     <main className="relative mx-auto flex h-[100dvh] max-w-md flex-col overflow-hidden bg-background">
       <header className="z-30 flex items-center gap-3 px-5 pb-1 pt-12">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-primary">{region.bannerSubtitle}</p>
-          <h1 className="text-xl font-bold tracking-tight">{region.bannerTitle}</h1>
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <Image
+            src="/logo.png"
+            alt="동행"
+            width={36}
+            height={36}
+            className="size-9 shrink-0 object-contain"
+            priority
+          />
+          <h1 className="truncate text-lg font-bold leading-tight tracking-tight">
+            함께할 사람을 찾다
+          </h1>
         </div>
         <button
           type="button"

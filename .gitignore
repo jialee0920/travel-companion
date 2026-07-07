@@ -11,7 +11,7 @@ apps/mobile/
 packages/
 docs/
 todo/
-public/
+/public/
 apps/companion/scripts/
 
 # Root config from other projects
