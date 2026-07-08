@@ -7,7 +7,6 @@ import type { GroupBuyStatus, RegionProduct } from '@/lib/regions/types';
 import { createRecord, escapeAirtableFormula, listRecords, updateRecord } from './client';
 import { requireAirtableConfig } from './config';
 import {
-  normalizeDiscountRate,
   resolveProductImageUrl,
 } from '@/lib/products/format';
 import {
@@ -28,7 +27,8 @@ function mapProduct(record: { id: string; fields: AirtableProductFields }): Regi
     category: fields.Category ?? '',
     ticketLabel: fields['Ticket Label']?.trim() ?? '',
     regularPrice: Number(fields['Regular Price'] ?? 0),
-    discountRate: normalizeDiscountRate(Number(fields['Discount Rate'] ?? 0)),
+    discountedPrice: Number(fields['Discounted Price'] ?? 0),
+    discountRate: Number(fields['Discount Rate'] ?? 0),
     targetCount: Number(fields['Target Count'] ?? 0),
     currentCount: Number(fields['Current Count'] ?? 0),
     groupBuyStatus: (fields['Group Buy Status'] ?? 'open') as GroupBuyStatus,

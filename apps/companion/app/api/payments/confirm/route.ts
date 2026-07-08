@@ -106,7 +106,7 @@ export async function PUT(request: Request) {
     const provider = getPaymentProvider();
     const checkout = provider.getClientCheckoutConfig();
 
-    const amount = perPersonCharge(product.regularPrice, product.discountRate, product.targetCount);
+    const amount = perPersonCharge(product.discountedPrice, product.targetCount);
     const merchantUid = `order_${crypto.randomUUID()}`;
     const orderCode = generateOrderCode();
 

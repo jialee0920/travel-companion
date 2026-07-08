@@ -37,6 +37,7 @@ export type RegionProduct = {
   category: string;
   ticketLabel: string;
   regularPrice: number;
+  discountedPrice: number;
   discountRate: number;
   targetCount: number;
   currentCount: number;

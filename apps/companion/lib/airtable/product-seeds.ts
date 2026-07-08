@@ -12,6 +12,7 @@ export type AirtableProductFields = {
   Category: string;
   'Ticket Label': string;
   'Regular Price': number;
+  'Discounted Price': number;
   'Discount Rate': number;
   'Target Count': number;
   'Current Count': number;
@@ -28,7 +29,8 @@ export const MUKHO_PRODUCT_SEEDS: Omit<RegionProduct, 'region'>[] = [
     category: 'food',
     ticketLabel: '2~3인분',
     regularPrice: 96000,
-    discountRate: 0.4,
+    discountedPrice: 57600,
+    discountRate: 40,
     targetCount: 4,
     currentCount: 1,
     groupBuyStatus: 'open',
@@ -42,7 +44,8 @@ export const MUKHO_PRODUCT_SEEDS: Omit<RegionProduct, 'region'>[] = [
     category: 'tour',
     ticketLabel: '1인',
     regularPrice: 52000,
-    discountRate: 0.35,
+    discountedPrice: 33800,
+    discountRate: 35,
     targetCount: 6,
     currentCount: 3,
     groupBuyStatus: 'open',
@@ -56,7 +59,8 @@ export const MUKHO_PRODUCT_SEEDS: Omit<RegionProduct, 'region'>[] = [
     category: 'gift',
     ticketLabel: '1세트',
     regularPrice: 48000,
-    discountRate: 0.5,
+    discountedPrice: 24000,
+    discountRate: 50,
     targetCount: 5,
     currentCount: 5,
     groupBuyStatus: 'success',
@@ -76,6 +80,7 @@ export function regionProductToAirtableFields(
     Category: product.category,
     'Ticket Label': product.ticketLabel,
     'Regular Price': product.regularPrice,
+    'Discounted Price': product.discountedPrice,
     'Discount Rate': product.discountRate,
     'Target Count': product.targetCount,
     'Current Count': product.currentCount,

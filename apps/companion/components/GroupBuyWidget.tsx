@@ -4,11 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Users } from 'lucide-react';
 import type { RegionProduct } from '@/lib/regions/types';
-import {
-  discountedPrice,
-  formatPrice,
-  perPersonCharge,
-} from '@/lib/geo';
+import { formatPrice, perPersonCharge } from '@/lib/geo';
 import { formatDiscountPercent } from '@/lib/products/format';
 import { openPaymentWindow } from '@/lib/payments/client-sdk';
 import type { ClientCheckoutConfig } from '@/lib/payments/types';
@@ -30,8 +26,7 @@ export function GroupBuyWidget({ product }: Props) {
 
   const isComplete =
     product.groupBuyStatus === 'success' || product.currentCount >= product.targetCount;
-  const charge = perPersonCharge(product.regularPrice, product.discountRate, product.targetCount);
-  const totalDiscounted = discountedPrice(product.regularPrice, product.discountRate);
+  const charge = perPersonCharge(product.discountedPrice, product.targetCount);
 
   async function handleParticipate() {
     if (!ready) return;
@@ -111,7 +106,7 @@ export function GroupBuyWidget({ product }: Props) {
         </div>
         <div className="flex justify-between font-semibold">
           <span>공동구매가</span>
-          <span className="text-primary">{formatPrice(totalDiscounted)}원</span>
+          <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
         </div>
         <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
           <span>1인 청구 금액</span>

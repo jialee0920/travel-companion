@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function GroupBuyCard({ product, compact }: Props) {
-  const charge = perPersonCharge(product.regularPrice, product.discountRate, product.targetCount);
+  const charge = perPersonCharge(product.discountedPrice, product.targetCount);
   const isComplete = product.groupBuyStatus === 'success' || product.currentCount >= product.targetCount;
   const imageUrl = resolveProductImageUrl(product.imageUrl);
 
@@ -44,7 +44,7 @@ export function GroupBuyCard({ product, compact }: Props) {
         </div>
         <p className="mt-1 line-clamp-2 text-sm font-semibold text-foreground">{product.name}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {formatPrice(charge)}원 / 1인 청구 · 총 {formatPrice(product.regularPrice)}원
+          {formatPrice(charge)}원 / 1인 청구 · 총 {formatPrice(product.discountedPrice)}원
         </p>
         <p className="mt-1 flex items-center gap-1 text-xs font-medium text-primary">
           <Users className="size-3.5" />

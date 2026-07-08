@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getProductById } from '@/lib/db/products';
 import { completeOrderAfterPayment } from '@/lib/payments/complete-order';
 import { getPaymentProvider } from '@/lib/payments/provider';
-import { upsertUser } from '@/lib/airtable/users';
-import { generateOrderCode, perPersonCharge } from '@/lib/geo';
-import { saveOrder } from '@/lib/db/orders';
 
 /** PG 인증 returnUrl — 인증 결과 POST 후 승인·주문 완료 */
 export async function POST(request: Request) {

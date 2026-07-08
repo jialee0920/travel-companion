@@ -99,11 +99,10 @@ export function discountedPrice(regularPrice: number, discountRate: number): num
   return Math.round(regularPrice * (1 - rate));
 }
 
-/** 1인 청구: 정가 × (1 - 할인율/100) ÷ 목표 인원 (할인율은 퍼센트·소수 모두 허용) */
-export function perPersonCharge(regularPrice: number, discountRate: number, targetCount: number): number {
+/** 1인 청구: Airtable Discounted Price ÷ 목표 인원 */
+export function perPersonCharge(discountedPrice: number, targetCount: number): number {
   if (targetCount <= 0) return 0;
-  const rate = discountRate > 1 ? discountRate / 100 : discountRate;
-  return Math.round((regularPrice * (1 - rate)) / targetCount);
+  return Math.round(discountedPrice / targetCount);
 }
 
 export function temperatureLabel(temp: number): { color: string; label: string } {
