@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { ChevronLeft, Receipt } from 'lucide-react';
 import { listProducts } from '@/lib/db/products';
 import { GroupBuyCard } from '@/components/GroupBuyCard';
@@ -31,16 +30,12 @@ export default async function GroupBuyPage() {
         </Link>
       </header>
 
-      <div className="relative mx-4 mb-5 overflow-hidden rounded-2xl">
-        <div className="relative h-36">
-          <Image src="/map-bg.png" alt="" fill className="object-cover" sizes="400px" aria-hidden />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
-          <div className="absolute bottom-3 left-4 right-4">
-            <p className="text-sm font-bold text-foreground">목표 인원 모집 · 할인 자동 적용</p>
-            <p className="text-xs text-muted-foreground">
-              함께 모이면 더 저렴하게, 달성 시 이용권이 발급돼요.
-            </p>
-          </div>
+      <div className="mx-4 mb-5 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary-muted via-background to-primary/10">
+        <div className="flex h-36 flex-col justify-end px-4 pb-4">
+          <p className="text-sm font-bold text-foreground">목표 인원 모집 · 할인 자동 적용</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            함께 모이면 더 저렴하게, 달성 시 이용권이 발급돼요.
+          </p>
         </div>
       </div>
 
