@@ -9,6 +9,7 @@ import {
   formatPrice,
   perPersonCharge,
 } from '@/lib/geo';
+import { formatDiscountPercent } from '@/lib/products/format';
 import { openPaymentWindow } from '@/lib/payments/client-sdk';
 import type { ClientCheckoutConfig } from '@/lib/payments/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -95,7 +96,7 @@ export function GroupBuyWidget({ product }: Props) {
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-center justify-between">
         <span className="rounded-lg bg-primary-muted px-2 py-1 text-sm font-bold text-primary">
-          {Math.round(product.discountRate * 100)}% 할인
+          {formatDiscountPercent(product.discountRate)}% 할인
         </span>
         <span className="flex items-center gap-1 text-sm font-semibold">
           <Users className="size-4 text-primary" />

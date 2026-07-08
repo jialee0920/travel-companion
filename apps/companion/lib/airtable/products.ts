@@ -7,26 +7,31 @@ import type { GroupBuyStatus, RegionProduct } from '@/lib/regions/types';
 import { createRecord, escapeAirtableFormula, listRecords, updateRecord } from './client';
 import { requireAirtableConfig } from './config';
 import {
+  normalizeDiscountRate,
+  resolveProductImageUrl,
+} from '@/lib/products/format';
+import {
   MUKHO_PRODUCT_SEEDS,
   type AirtableProductFields,
   mukhoSeedToAirtableFields,
 } from './product-seeds';
 
 function mapProduct(record: { id: string; fields: AirtableProductFields }): RegionProduct {
+  const fields = record.fields;
   return {
-    id: record.fields['Product ID'],
-    region: record.fields.Region,
-    name: record.fields.Name,
-    description: record.fields.Description,
-    imageUrl: record.fields['Image URL'] ?? '/product-pt.png',
-    sellerName: record.fields['Seller Name'],
-    category: record.fields.Category,
-    ticketLabel: record.fields['Ticket Label'],
-    regularPrice: record.fields['Regular Price'],
-    discountRate: record.fields['Discount Rate'],
-    targetCount: record.fields['Target Count'],
-    currentCount: record.fields['Current Count'],
-    groupBuyStatus: record.fields['Group Buy Status'],
+    id: fields['Product ID'],
+    region: fields.Region,
+    name: fields.Name ?? '',
+    description: fields.Description ?? '',
+    imageUrl: resolveProductImageUrl(fields['Image URL']),
+    sellerName: fields['Seller Name'] ?? '',
+    category: fields.Category ?? '',
+    ticketLabel: fields['Ticket Label']?.trim() ?? '',
+    regularPrice: Number(fields['Regular Price'] ?? 0),
+    discountRate: normalizeDiscountRate(Number(fields['Discount Rate'] ?? 0)),
+    targetCount: Number(fields['Target Count'] ?? 0),
+    currentCount: Number(fields['Current Count'] ?? 0),
+    groupBuyStatus: (fields['Group Buy Status'] ?? 'open') as GroupBuyStatus,
   };
 }
 

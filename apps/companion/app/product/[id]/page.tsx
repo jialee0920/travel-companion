@@ -7,6 +7,7 @@ import { bottomChromePaddingClass } from '@/lib/bottom-chrome';
 import { getProductById } from '@/lib/db/products';
 import { GroupBuyWidget } from '@/components/GroupBuyWidget';
 import { listParticipants } from '@/lib/db/orders';
+import { resolveProductImageUrl } from '@/lib/products/format';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -18,12 +19,13 @@ export default async function ProductPage({ params }: Props) {
   if (!product) notFound();
 
   const participants = await listParticipants(id);
+  const imageUrl = resolveProductImageUrl(product.imageUrl);
 
   return (
     <main className={`mx-auto min-h-screen max-w-md bg-background ${bottomChromePaddingClass(true)}`}>
-      <div className="relative h-64 w-full">
+      <div className="relative h-64 w-full bg-muted">
         <Image
-          src={product.imageUrl}
+          src={imageUrl}
           alt={product.name}
           fill
           className="object-cover"
@@ -43,10 +45,11 @@ export default async function ProductPage({ params }: Props) {
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Store className="size-4" />
           {product.sellerName}
-          <span className="text-border">·</span>
-          {product.ticketLabel}
         </div>
         <h1 className="mt-1.5 text-xl font-bold">{product.name}</h1>
+        {product.ticketLabel ? (
+          <p className="mt-1 text-xs font-medium text-primary">{product.ticketLabel}</p>
+        ) : null}
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{product.description}</p>
       </div>
 

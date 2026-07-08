@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ChevronRight, Users } from 'lucide-react';
 import type { RegionProduct } from '@/lib/regions/types';
 import { formatPrice, perPersonCharge } from '@/lib/geo';
+import { formatDiscountPercent, resolveProductImageUrl } from '@/lib/products/format';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
 export function GroupBuyCard({ product, compact }: Props) {
   const charge = perPersonCharge(product.regularPrice, product.discountRate, product.targetCount);
   const isComplete = product.groupBuyStatus === 'success' || product.currentCount >= product.targetCount;
+  const imageUrl = resolveProductImageUrl(product.imageUrl);
 
   return (
     <Link
@@ -24,7 +26,7 @@ export function GroupBuyCard({ product, compact }: Props) {
     >
       <div className="relative size-20 shrink-0 overflow-hidden rounded-xl bg-muted">
         <Image
-          src={product.imageUrl}
+          src={imageUrl}
           alt={product.name}
           fill
           className="object-cover"
@@ -34,7 +36,7 @@ export function GroupBuyCard({ product, compact }: Props) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
-            {Math.round(product.discountRate * 100)}% 할인
+            {formatDiscountPercent(product.discountRate)}% 할인
           </span>
           {isComplete && (
             <span className="text-micro font-semibold text-muted-foreground">모집 완료</span>
