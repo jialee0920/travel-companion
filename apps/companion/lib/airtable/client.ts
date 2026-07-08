@@ -49,7 +49,14 @@ async function airtableFetch<T>(
 
 export async function listRecords<T>(
   table: string,
-  options?: { filterByFormula?: string; maxRecords?: number; sortField?: string; sortDirection?: 'asc' | 'desc' },
+  options?: {
+    filterByFormula?: string;
+    maxRecords?: number;
+    sortField?: string;
+    sortDirection?: 'asc' | 'desc';
+    /** view 이름 — 지정 시 해당 view의 행 순서(드래그 순서)를 따름 */
+    view?: string;
+  },
 ): Promise<AirtableRecord<T>[]> {
   const config = requireAirtableConfig();
   const all: AirtableRecord<T>[] = [];
@@ -59,6 +66,7 @@ export async function listRecords<T>(
     const params: Record<string, string> = {};
     if (options?.filterByFormula) params.filterByFormula = options.filterByFormula;
     if (options?.maxRecords) params.maxRecords = String(options.maxRecords);
+    if (options?.view) params.view = options.view;
     if (options?.sortField) {
       params['sort[0][field]'] = options.sortField;
       params['sort[0][direction]'] = options.sortDirection ?? 'desc';

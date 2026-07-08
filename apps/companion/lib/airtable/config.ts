@@ -4,6 +4,7 @@ export type AirtableConfig = {
   usersTable: string;
   otpTable: string;
   productsTable: string;
+  productsView: string;
   ordersTable: string;
   participantsTable: string;
   chatRoomsTable: string;
@@ -22,6 +23,7 @@ export function getAirtableConfig(): AirtableConfig | null {
     usersTable: cleanEnv(process.env.AIRTABLE_USERS_TABLE) || 'Users',
     otpTable: cleanEnv(process.env.AIRTABLE_OTP_CODES_TABLE) || 'OTP_Codes',
     productsTable: cleanEnv(process.env.AIRTABLE_PRODUCTS_TABLE) || 'Products',
+    productsView: cleanEnv(process.env.AIRTABLE_PRODUCTS_VIEW) || 'Grid view',
     ordersTable: cleanEnv(process.env.AIRTABLE_ORDERS_TABLE) || 'Orders',
     participantsTable: cleanEnv(process.env.AIRTABLE_PARTICIPANTS_TABLE) || 'Participants',
     chatRoomsTable: cleanEnv(process.env.AIRTABLE_CHAT_ROOMS_TABLE) || 'Chat_Rooms',

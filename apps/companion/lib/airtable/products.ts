@@ -48,8 +48,10 @@ export async function findProductRecordByProductId(
 
 export async function listProducts(region = DEFAULT_REGION_CODE): Promise<RegionProduct[]> {
   const config = requireAirtableConfig();
-  // sort 파라미터 없이 조회 → Airtable 테이블 행 순서 유지
-  const records = await listRecords<AirtableProductFields>(config.productsTable, {});
+  // view 지정 + sort 없음 → 해당 view의 드래그 행 순서 유지
+  const records = await listRecords<AirtableProductFields>(config.productsTable, {
+    view: config.productsView,
+  });
   const products = records.map(mapProduct);
 
   if (!isRegionFilterEnabled()) return products;
