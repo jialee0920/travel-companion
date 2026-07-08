@@ -1,8 +1,5 @@
 import { DEFAULT_REGION_CODE } from '@/lib/regions';
-import {
-  airtableRegionFormula,
-  isRegionFilterEnabled,
-} from '@/lib/region-filter';
+import { isRegionFilterEnabled } from '@/lib/region-filter';
 import type { GroupBuyStatus, RegionProduct } from '@/lib/regions/types';
 import { createRecord, escapeAirtableFormula, listRecords, updateRecord } from './client';
 import { requireAirtableConfig } from './config';
@@ -51,14 +48,12 @@ export async function findProductRecordByProductId(
 
 export async function listProducts(region = DEFAULT_REGION_CODE): Promise<RegionProduct[]> {
   const config = requireAirtableConfig();
-  const formula = isRegionFilterEnabled()
-    ? airtableRegionFormula(region, escapeAirtableFormula)
-    : undefined;
-  const records = await listRecords<AirtableProductFields>(config.productsTable, {
-    filterByFormula: formula,
-  });
+  // sort 파라미터 없이 조회 → Airtable 테이블 행 순서 유지
+  const records = await listRecords<AirtableProductFields>(config.productsTable, {});
+  const products = records.map(mapProduct);
 
-  return records.map(mapProduct);
+  if (!isRegionFilterEnabled()) return products;
+  return products.filter((product) => product.region === region);
 }
 
 export async function getProductById(

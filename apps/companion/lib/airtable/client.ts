@@ -52,16 +52,29 @@ export async function listRecords<T>(
   options?: { filterByFormula?: string; maxRecords?: number; sortField?: string; sortDirection?: 'asc' | 'desc' },
 ): Promise<AirtableRecord<T>[]> {
   const config = requireAirtableConfig();
-  const params: Record<string, string> = {};
-  if (options?.filterByFormula) params.filterByFormula = options.filterByFormula;
-  if (options?.maxRecords) params.maxRecords = String(options.maxRecords);
-  if (options?.sortField) {
-    params['sort[0][field]'] = options.sortField;
-    params['sort[0][direction]'] = options.sortDirection ?? 'desc';
-  }
+  const all: AirtableRecord<T>[] = [];
+  let offset: string | undefined;
 
-  const data = await airtableFetch<ListResponse<T>>(config, table, { searchParams: params });
-  return data.records ?? [];
+  do {
+    const params: Record<string, string> = {};
+    if (options?.filterByFormula) params.filterByFormula = options.filterByFormula;
+    if (options?.maxRecords) params.maxRecords = String(options.maxRecords);
+    if (options?.sortField) {
+      params['sort[0][field]'] = options.sortField;
+      params['sort[0][direction]'] = options.sortDirection ?? 'desc';
+    }
+    if (offset) params.offset = offset;
+
+    const data = await airtableFetch<ListResponse<T>>(config, table, { searchParams: params });
+    all.push(...(data.records ?? []));
+    offset = data.offset;
+
+    if (options?.maxRecords && all.length >= options.maxRecords) {
+      return all.slice(0, options.maxRecords);
+    }
+  } while (offset);
+
+  return all;
 }
 
 export async function createRecord<T extends Record<string, unknown>>(
