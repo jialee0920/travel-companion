@@ -30,13 +30,11 @@ export default async function GroupBuyPage() {
         </Link>
       </header>
 
-      <div className="mx-4 mb-5 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary-muted via-background to-primary/10">
-        <div className="flex h-36 flex-col justify-end px-4 pb-4">
-          <p className="text-sm font-bold text-foreground">목표 인원 모집 · 할인 자동 적용</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            함께 모이면 더 저렴하게, 달성 시 이용권이 발급돼요.
-          </p>
-        </div>
+      <div className="mx-4 mb-4 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary-muted via-background to-primary/10 px-4 py-2">
+        <p className="text-sm font-bold text-foreground">목표 인원 모집 · 할인 자동 적용</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          함께 모이면 더 저렴하게, 달성 시 이용권이 발급돼요.
+        </p>
       </div>
 
       <div className="flex flex-col gap-3 px-4 pb-4">
