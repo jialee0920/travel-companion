@@ -38,9 +38,7 @@ export default async function OrdersPage() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold">{order.product_name}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {order.participant_name} · {order.region}
-                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{order.participant_name}</p>
                 </div>
                 <span
                   className={

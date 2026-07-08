@@ -20,7 +20,7 @@ export default async function GroupBuyPage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-lg font-bold">공동구매</h1>
-          <p className="text-xs text-muted-foreground">지역 특산·체험 상품</p>
+          <p className="text-xs text-muted-foreground">함께 모이면 더 저렴하게</p>
         </div>
         <Link
           href="/orders"
@@ -33,7 +33,7 @@ export default async function GroupBuyPage() {
 
       <div className="relative mx-4 mb-5 overflow-hidden rounded-2xl">
         <div className="relative h-36">
-          <Image src="/map-bg.png" alt="지역 지도" fill className="object-cover" sizes="400px" />
+          <Image src="/map-bg.png" alt="" fill className="object-cover" sizes="400px" aria-hidden />
           <div className="absolute inset-0 bg-gradient-to-t from-background/90 to-transparent" />
           <div className="absolute bottom-3 left-4 right-4">
             <p className="text-sm font-bold text-foreground">목표 인원 모집 · 할인 자동 적용</p>

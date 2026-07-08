@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: '동행 · 함께할 사람을 찾다',
   description:
-    '실시간 동행 매칭과 공동구매. 식사, 운동, 여행 동행과 지역 특산품을 함께 즐겨보세요.',
+    '실시간 동행 매칭과 공동구매. 식사, 운동, 여행 동행을 함께 즐겨보세요.',
   icons: {
     icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
     apple: '/apple-icon.png',

@@ -31,8 +31,8 @@ export function GroupBuySection({ products, variant = 'page' }: Props) {
           <p className="text-sm font-semibold text-foreground">공동구매</p>
         ) : (
           <div>
-            <p className="text-xs font-medium text-primary">지역 공동구매</p>
             <h2 className="text-base font-bold text-foreground">함께 구매하면 더 저렴해요</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">목표 인원 달성 시 할인가로 이용</p>
           </div>
         )}
         <Link
