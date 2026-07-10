@@ -24,24 +24,30 @@ type Props = {
   onClose: () => void;
 };
 
+type ContentProps = {
+  companion: CompanionListItem;
+  onClose: () => void;
+};
+
 export function CompanionDetailSheet({ companion, onClose }: Props) {
+  if (!companion) return null;
+  return <CompanionDetailSheetContent companion={companion} onClose={onClose} />;
+}
+
+function CompanionDetailSheetContent({ companion, onClose }: ContentProps) {
   const { startChat, startingId, profileId } = useStartChat();
 
   useEffect(() => {
-    if (!companion) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [companion, onClose]);
+  }, [onClose]);
 
-  if (!companion) return null;
-
-  const activeCompanion = companion;
-  const hasTemperature = activeCompanion.temperature != null;
-  const tone = hasTemperature ? temperatureLabel(activeCompanion.temperature!) : null;
-  const peerId = activeCompanion.peerProfileId;
-  const seedId = activeCompanion.companionSeedId;
-  const isMock = activeCompanion.kind === 'mock';
+  const hasTemperature = companion.temperature != null;
+  const tone = hasTemperature ? temperatureLabel(companion.temperature!) : null;
+  const peerId = companion.peerProfileId;
+  const seedId = companion.companionSeedId;
+  const isMock = companion.kind === 'mock';
   const canChat =
     (!!peerId && peerId !== profileId) || (!!seedId && isMock);
   const busy =
