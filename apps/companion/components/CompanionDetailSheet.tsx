@@ -36,12 +36,14 @@ export function CompanionDetailSheet({ companion, onClose }: Props) {
 
   if (!companion) return null;
 
-  const hasTemperature = companion.temperature != null;
-  const tone = hasTemperature ? temperatureLabel(companion.temperature!) : null;
-  const peerId = companion.peerProfileId;
-  const seedId = companion.companionSeedId;
+  const activeCompanion = companion;
+  const hasTemperature = activeCompanion.temperature != null;
+  const tone = hasTemperature ? temperatureLabel(activeCompanion.temperature!) : null;
+  const peerId = activeCompanion.peerProfileId;
+  const seedId = activeCompanion.companionSeedId;
+  const isMock = activeCompanion.kind === 'mock';
   const canChat =
-    (!!peerId && peerId !== profileId) || (!!seedId && companion.kind === 'mock');
+    (!!peerId && peerId !== profileId) || (!!seedId && isMock);
   const busy =
     startingId != null && (startingId === peerId || startingId === seedId);
 
@@ -49,7 +51,7 @@ export function CompanionDetailSheet({ companion, onClose }: Props) {
     if (!canChat) return;
     const ok = await startChat({
       peerProfileId: peerId,
-      companionSeedId: companion.kind === 'mock' ? seedId : undefined,
+      companionSeedId: isMock ? seedId : undefined,
     });
     if (ok) onClose();
   }
