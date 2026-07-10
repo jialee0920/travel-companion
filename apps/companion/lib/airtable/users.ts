@@ -263,6 +263,7 @@ export async function updateUserProfile(
     interestCategories?: string[];
     profileCompleted?: boolean;
     age?: number | null;
+    region?: string;
   },
 ): Promise<AirtableUser> {
   const config = requireAirtableConfig();
@@ -279,6 +280,9 @@ export async function updateUserProfile(
   }
   if (input.age !== undefined) {
     fields.Age = input.age ?? undefined;
+  }
+  if (input.region !== undefined) {
+    fields.Region = resolveRegionForStorage(input.region);
   }
 
   const updated = await updateRecord<AirtableUserFields>(config.usersTable, userId, fields);

@@ -7,6 +7,11 @@ import {
   INTEREST_CATEGORIES,
   type InterestCategory,
 } from '@/lib/profile/constants';
+import {
+  DEFAULT_REGION_CODE,
+  isKnownRegionCode,
+  REGION_OPTIONS,
+} from '@/lib/regions';
 import { cn } from '@/lib/utils';
 
 const CATEGORY_META: Record<
@@ -23,11 +28,17 @@ function safeReturnUrl(url: string | null): string {
   return url;
 }
 
+function resolveInitialRegion(code?: string | null): string {
+  if (code && isKnownRegionCode(code)) return code;
+  return DEFAULT_REGION_CODE;
+}
+
 type Props = {
   returnUrl: string;
   initialBio?: string | null;
   initialCategories?: string[];
   initialAge?: number | null;
+  initialRegion?: string | null;
   showSkip?: boolean;
   title?: string;
   subtitle?: string;
@@ -38,6 +49,7 @@ export function ProfileSetupForm({
   initialBio = '',
   initialCategories = [],
   initialAge = null,
+  initialRegion = null,
   showSkip = true,
   title = '프로필 작성',
   subtitle = '동행자에게 나를 소개해 보세요.',
@@ -45,6 +57,7 @@ export function ProfileSetupForm({
   const router = useRouter();
   const [bio, setBio] = useState(initialBio ?? '');
   const [age, setAge] = useState(initialAge != null ? String(initialAge) : '');
+  const [region, setRegion] = useState(resolveInitialRegion(initialRegion));
   const [categories, setCategories] = useState<InterestCategory[]>(
     initialCategories.filter((c): c is InterestCategory =>
       (INTEREST_CATEGORIES as readonly string[]).includes(c),
@@ -65,6 +78,7 @@ export function ProfileSetupForm({
       bio: bio.trim() || null,
       interest_categories: categories,
       profile_completed: profileCompleted,
+      region,
     };
     if (includeAge && age.trim()) {
       payload.age = Number(age);
@@ -82,6 +96,10 @@ export function ProfileSetupForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    if (!isKnownRegionCode(region)) {
+      setError('활동 지역을 선택해주세요.');
+      return;
+    }
     const ageNum = Number(age);
     if (!age.trim() || !Number.isInteger(ageNum) || ageNum < 14 || ageNum > 99) {
       setError('만 나이는 14~99 사이로 입력해주세요.');
@@ -123,6 +141,31 @@ export function ProfileSetupForm({
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <fieldset>
+          <legend className="text-sm font-medium">활동 지역</legend>
+          <p className="mt-0.5 text-xs text-muted-foreground">하나만 선택</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {REGION_OPTIONS.map((option) => {
+              const selected = region === option.code;
+              return (
+                <button
+                  key={option.code}
+                  type="button"
+                  onClick={() => setRegion(option.code)}
+                  className={cn(
+                    'rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors',
+                    selected
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-card text-foreground hover:bg-secondary',
+                  )}
+                >
+                  {option.name}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
         <label className="block">
           <span className="text-sm font-medium">나이 (만)</span>
           <input

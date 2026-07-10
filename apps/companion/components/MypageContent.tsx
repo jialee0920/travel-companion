@@ -7,6 +7,7 @@ import { Loader2, LogOut, Pencil, Phone, User } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { formatPrice } from '@/lib/geo';
 import type { OrderRecord } from '@/lib/db/orders';
+import { getRegionDisplayName } from '@/lib/regions';
 
 type Props = {
   initialOrders?: OrderRecord[];
@@ -87,7 +88,9 @@ export function MypageContent({ initialOrders = [] }: Props) {
               <Phone className="size-3.5" />
               {profile.phone}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">활동 지역</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              활동 지역 · {getRegionDisplayName(profile.region)}
+            </p>
           </div>
         </div>
         {(profile.bio || (profile.interest_categories?.length ?? 0) > 0) && (

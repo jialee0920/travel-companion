@@ -51,11 +51,12 @@ export function ProfileSetupPageClient() {
       initialBio={profile.bio}
       initialCategories={profile.interest_categories}
       initialAge={profile.age}
+      initialRegion={profile.region}
       showSkip={!fromMypage && !profile.profile_completed}
       title={fromMypage ? '프로필 수정' : '프로필 작성'}
       subtitle={
         fromMypage
-          ? '자기소개와 관심 카테고리를 수정할 수 있어요.'
+          ? '활동 지역, 자기소개와 관심 카테고리를 수정할 수 있어요.'
           : '동행자에게 나를 소개해 보세요. (프로필 사진은 추후 추가 예정)'
       }
     />
