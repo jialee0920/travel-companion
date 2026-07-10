@@ -46,13 +46,22 @@ export async function findProductRecordByProductId(
   return { id: records[0].id, product: mapProduct(records[0]) };
 }
 
-export async function listProducts(region = DEFAULT_REGION_CODE): Promise<RegionProduct[]> {
+async function fetchAllProducts(): Promise<RegionProduct[]> {
   const config = requireAirtableConfig();
   // view 지정 + sort 없음 → 해당 view의 드래그 행 순서 유지
   const records = await listRecords<AirtableProductFields>(config.productsTable, {
     view: config.productsView,
   });
-  const products = records.map(mapProduct);
+  return records.map(mapProduct);
+}
+
+/** Airtable Products 전체 (Region 필터 없음) — 공동구매 탭 등 */
+export async function listAllProducts(): Promise<RegionProduct[]> {
+  return fetchAllProducts();
+}
+
+export async function listProducts(region = DEFAULT_REGION_CODE): Promise<RegionProduct[]> {
+  const products = await fetchAllProducts();
 
   if (!isRegionFilterEnabled()) return products;
   return products.filter((product) => product.region === region);

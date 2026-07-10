@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { ChevronLeft, Receipt } from 'lucide-react';
-import { listProducts } from '@/lib/db/products';
-import { GroupBuyCard } from '@/components/GroupBuyCard';
+import { listAllProducts } from '@/lib/db/products';
+import { GroupBuyProductList } from '@/components/GroupBuyProductList';
 import { PageShell } from '@/components/PageShell';
 
 export default async function GroupBuyPage() {
-  const products = await listProducts();
+  const products = await listAllProducts();
 
   return (
     <PageShell active="group-buy">
@@ -37,11 +37,7 @@ export default async function GroupBuyPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 px-4 pb-4">
-        {products.map((product) => (
-          <GroupBuyCard key={product.id} product={product} />
-        ))}
-      </div>
+      <GroupBuyProductList products={products} />
     </PageShell>
   );
 }

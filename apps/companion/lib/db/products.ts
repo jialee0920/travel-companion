@@ -1,12 +1,22 @@
 import { getAirtableConfig } from '@/lib/airtable/config';
 import {
   getProductById as getAirtableProductById,
+  listAllProducts as listAirtableAllProducts,
   listProducts as listAirtableProducts,
   seedProductsIfEmpty,
 } from '@/lib/airtable/products';
 import { DEFAULT_REGION_CODE, getAllRegions, getRegion } from '@/lib/regions';
 import { isRegionFilterEnabled } from '@/lib/region-filter';
 import type { RegionProduct } from '@/lib/regions/types';
+
+/** 모든 지역 상품 (공동구매 지역 탭용) */
+export async function listAllProducts(): Promise<RegionProduct[]> {
+  if (getAirtableConfig()) {
+    await seedProductsIfEmpty(DEFAULT_REGION_CODE);
+    return listAirtableAllProducts();
+  }
+  return getAllRegions().flatMap((r) => r.products);
+}
 
 export async function listProducts(region = DEFAULT_REGION_CODE): Promise<RegionProduct[]> {
   if (getAirtableConfig()) {

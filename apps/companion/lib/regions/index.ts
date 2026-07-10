@@ -47,4 +47,11 @@ export function getProductById(productId: string, regionCode = DEFAULT_REGION_CO
 }
 
 export { mukhoRegion, seoulRegion };
+export {
+  DEFAULT_PRODUCT_REGION_TAB,
+  NATIONAL_PRODUCT_REGION,
+  PRODUCT_REGION_TABS,
+  filterProductsByRegionTab,
+} from './product-tabs';
+export type { ProductRegionTabId } from './product-tabs';
 export type * from './types';
