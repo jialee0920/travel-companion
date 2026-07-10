@@ -10,6 +10,9 @@ export const SALE_BANNER_HREF = '/';
 /** public/sale-banner.png — 파일만 교체하면 반영 */
 export const SALE_BANNER_SRC = '/sale-banner.png';
 
+/** sale-banner.png 원본 픽셀 비율 (1898×829 ≈ 2.29:1) */
+const SALE_BANNER_ASPECT_RATIO = '1898 / 829';
+
 type Props = {
   href?: string;
   className?: string;
@@ -27,7 +30,7 @@ export function SaleBanner({ href = SALE_BANNER_HREF, className }: Props) {
       {failed ? (
         <div
           className="flex w-full items-center justify-center bg-gradient-to-br from-primary to-primary/70 px-6"
-          style={{ aspectRatio: '3 / 1', minHeight: 96 }}
+          style={{ aspectRatio: SALE_BANNER_ASPECT_RATIO }}
         >
           <p className="text-sm font-bold text-primary-foreground">공동구매 세일</p>
         </div>
@@ -36,8 +39,9 @@ export function SaleBanner({ href = SALE_BANNER_HREF, className }: Props) {
         <img
           src={SALE_BANNER_SRC}
           alt="세일 배너"
-          className="block w-full object-cover"
-          style={{ aspectRatio: '3 / 1', minHeight: 96 }}
+          width={1898}
+          height={829}
+          className="block h-auto w-full object-contain"
           onError={() => setFailed(true)}
         />
       )}
