@@ -51,11 +51,11 @@ export function BottomNav({ active, embedded }: Props) {
     <nav
       className={cn(
         embedded
-          ? 'px-2 pb-4 pt-1'
-          : 'fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-border bg-background/95 px-2 pb-4 pt-2 backdrop-blur',
+          ? 'px-1 pb-4 pt-1'
+          : 'fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-border bg-background/95 px-1 pb-4 pt-2 backdrop-blur',
       )}
     >
-      <div className="flex items-end justify-around">
+      <div className="grid grid-cols-3 items-end">
         {TABS.map(({ id, label, icon: Icon, href }) => {
           const selected = isTabSelected(id, href, pathname, active);
 
@@ -64,14 +64,14 @@ export function BottomNav({ active, embedded }: Props) {
               <Link
                 key={id}
                 href={href}
-                className="relative -mt-5 flex w-[4.5rem] flex-col items-center"
+                className="relative -mt-5 flex flex-col items-center justify-end"
               >
                 <span className="flex size-[3.25rem] items-center justify-center rounded-full bg-foreground shadow-[0_6px_16px_rgba(0,0,0,0.22)]">
                   <Icon className="size-6 text-background" strokeWidth={2} />
                 </span>
                 <span
                   className={cn(
-                    'mt-1 text-micro font-semibold',
+                    'mt-1 whitespace-nowrap text-[10px] font-semibold leading-none',
                     selected ? 'text-primary' : 'text-muted-foreground',
                   )}
                 >
@@ -85,7 +85,7 @@ export function BottomNav({ active, embedded }: Props) {
             <Link
               key={id}
               href={href}
-              className="flex w-[4.5rem] flex-col items-center gap-0.5 px-1 py-1"
+              className="flex flex-col items-center justify-end gap-0.5 px-1 py-1"
             >
               <Icon
                 className={cn('size-5', selected ? 'text-primary' : 'text-muted-foreground')}
@@ -93,7 +93,7 @@ export function BottomNav({ active, embedded }: Props) {
               />
               <span
                 className={cn(
-                  'text-micro font-medium',
+                  'whitespace-nowrap text-[10px] font-medium leading-none',
                   selected ? 'text-primary' : 'text-muted-foreground',
                 )}
               >
