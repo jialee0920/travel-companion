@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       description: trimmedDescription,
       region: trimmedRegion,
       authorId: session.id,
-      authorName: session.name,
+      authorName: session.nickname,
       targetCount: target_count,
       gatheringDate: gathering_date?.trim() || null,
     });

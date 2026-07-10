@@ -18,7 +18,10 @@ import { getAirtableConfig, requireAirtableConfig } from './config';
 
 export type AirtableUserFields = {
   Phone?: string;
+  /** 실명 — 결제/신원확인용, 화면 미노출 */
   Name?: string;
+  /** 카카오 닉네임 등 공개 표시용 */
+  Nickname?: string;
   Region?: string;
   'Avatar URL'?: string;
   'Companion Seed ID'?: string;
@@ -36,7 +39,10 @@ export type AirtableUserFields = {
 export type AirtableUser = {
   id: string;
   phone: string;
+  /** 실명 (Users.Name) */
   name: string;
+  /** 공개 표시명 (Users.Nickname) */
+  nickname: string;
   region: string;
   avatarUrl: string | null;
   companionSeedId: string | null;
@@ -50,6 +56,23 @@ export type AirtableUser = {
   kakaoId: string | null;
   authProvider: 'phone' | 'kakao' | null;
 };
+
+/** 화면에 보여줄 이름 — Nickname만 사용 (실명 Name은 절대 노출하지 않음) */
+export function userDisplayName(user: {
+  nickname?: string | null;
+  name?: string | null;
+}): string {
+  const nickname = user.nickname?.trim();
+  if (nickname) return nickname;
+  return '사용자';
+}
+
+/** 참여자 목록용 마스킹 (닉네임 첫 글자 + **) */
+export function maskDisplayName(display: string): string {
+  const trimmed = display.trim();
+  if (!trimmed) return '**';
+  return `${trimmed.slice(0, 1)}**`;
+}
 
 function parseNumberField(value: unknown): number | null {
   if (typeof value === 'number' && !Number.isNaN(value)) return value;
@@ -65,6 +88,7 @@ function mapUser(record: { id: string; fields: AirtableUserFields }): AirtableUs
     id: record.id,
     phone: record.fields.Phone ?? '',
     name: record.fields.Name ?? '',
+    nickname: record.fields.Nickname ?? '',
     region: record.fields.Region ?? '',
     avatarUrl: record.fields['Avatar URL'] ?? null,
     companionSeedId: record.fields['Companion Seed ID'] ?? null,
@@ -85,7 +109,7 @@ export function toProfileRow(user: AirtableUser, createdAt?: string): ProfileRow
   return {
     id: user.id,
     phone: user.phone,
-    name: user.name,
+    name: userDisplayName(user),
     region: user.region,
     avatar_url: user.avatarUrl,
     companion_seed_id: user.companionSeedId,
@@ -192,7 +216,7 @@ function isRealUser(user: AirtableUser): boolean {
 function filterRealUsers(users: AirtableUser[], excludeUserId?: string): AirtableUser[] {
   return users
     .filter((user) => isRealUser(user) && user.id !== excludeUserId)
-    .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    .sort((a, b) => userDisplayName(a).localeCompare(userDisplayName(b), 'ko'));
 }
 
 export async function upsertUser(input: {
@@ -217,6 +241,7 @@ export async function upsertUser(input: {
   const created = await createRecord<AirtableUserFields>(config.usersTable, {
     Phone: phone,
     Name: name,
+    Nickname: name,
     Region: region,
     'Auth Provider': 'phone',
   });
@@ -225,19 +250,22 @@ export async function upsertUser(input: {
 
 export async function upsertKakaoUser(input: {
   kakaoId: string;
-  name: string;
+  nickname: string;
   region: string;
   avatarUrl?: string | null;
 }): Promise<AirtableUser> {
   const config = requireAirtableConfig();
   const kakaoId = input.kakaoId.trim();
-  const name = input.name.trim() || `카카오${kakaoId}`;
+  const nickname = input.nickname.trim() || `카카오${kakaoId}`;
   const region = resolveRegionForStorage(input.region);
 
   const existing = await findUserByKakaoId(kakaoId);
   if (existing) {
-    // 프로필에서 설정한 실명을 카카오 닉네임으로 덮어쓰지 않음
+    // Nickname은 카카오 최신값으로 갱신, Name(실명)은 절대 덮어쓰지 않음
     const fields: Partial<AirtableUserFields> = {};
+    if (existing.nickname !== nickname) {
+      fields.Nickname = nickname;
+    }
     if (input.avatarUrl && existing.avatarUrl !== input.avatarUrl) {
       fields['Avatar URL'] = input.avatarUrl;
     }
@@ -247,7 +275,7 @@ export async function upsertKakaoUser(input: {
   }
 
   const created = await createRecord<AirtableUserFields>(config.usersTable, {
-    Name: name,
+    Nickname: nickname,
     Region: region,
     'Kakao ID': kakaoId,
     'Auth Provider': 'kakao',
@@ -357,7 +385,7 @@ export async function getOrCreateCompanionUser(
   const config = requireAirtableConfig();
   const created = await createRecord<AirtableUserFields>(config.usersTable, {
     Phone: `seed:${companionSeedId}`,
-    Name: companion.name,
+    Nickname: companion.name,
     Region: regionCode,
     'Avatar URL': companion.avatar,
     'Companion Seed ID': companionSeedId,

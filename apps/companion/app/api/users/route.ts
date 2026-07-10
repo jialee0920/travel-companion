@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listRealUsers } from '@/lib/airtable/users';
+import { listRealUsers, userDisplayName } from '@/lib/airtable/users';
 import { getSessionUser } from '@/lib/auth/session';
 import { resolveRegionForStorage } from '@/lib/region-filter';
 
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   try {
     const users = await listRealUsers(region, session.id);
     return NextResponse.json({
-      users: users.map((u) => ({ id: u.id, name: u.name, phone: u.phone })),
+      users: users.map((u) => ({ id: u.id, name: userDisplayName(u), phone: u.phone })),
     });
   } catch (error) {
     console.error(error);

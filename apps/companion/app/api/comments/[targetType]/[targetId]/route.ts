@@ -71,7 +71,7 @@ export async function POST(request: Request, { params }: Props) {
       targetType,
       targetId,
       authorId: session.id,
-      authorName: session.name,
+      authorName: session.nickname,
       body: text,
     });
 

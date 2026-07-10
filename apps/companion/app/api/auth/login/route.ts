@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       : {
           id: user.id,
           name: user.name,
+          nickname: user.nickname,
           phone: user.phone,
           region: user.region,
           avatar_url: null,

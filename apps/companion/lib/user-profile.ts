@@ -1,6 +1,9 @@
 export type UserProfile = {
   id: string;
+  /** 실명 (Users.Name) — 결제/프로필 입력용, 공개 화면 미사용 */
   name: string;
+  /** 공개 표시명 (Users.Nickname) */
+  nickname: string;
   phone: string;
   region: string;
   avatar_url?: string | null;
@@ -35,4 +38,14 @@ export function clearUserProfile(): void {
 
 export function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '');
+}
+
+/** 화면에 보여줄 이름 — Nickname만 (실명 미노출) */
+export function profileDisplayName(profile: {
+  nickname?: string | null;
+  name?: string | null;
+}): string {
+  const nickname = profile.nickname?.trim();
+  if (nickname) return nickname;
+  return '사용자';
 }

@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
     const sessionUser = await completeKakaoLogin({
       kakaoId: profile.kakaoId,
-      name: profile.nickname,
+      nickname: profile.nickname,
       region: defaultRegionCode(),
       avatarUrl: profile.avatarUrl,
     });

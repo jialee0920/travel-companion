@@ -7,7 +7,10 @@ import { defaultRegionCode } from '@/lib/region-filter';
 export type SessionUser = {
   id: string;
   phone: string;
+  /** 실명 */
   name: string;
+  /** 공개 표시명 (Author Name 등) */
+  nickname: string;
   region: string;
   airtableId?: string;
 };
@@ -25,6 +28,7 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
     sub: user.id,
     phone: user.phone,
     name: user.name,
+    nickname: user.nickname,
     region: user.region,
     airtableId: user.airtableId,
   })
@@ -39,10 +43,14 @@ export async function verifySessionToken(token: string): Promise<SessionUser> {
   const sub = payload.sub;
   if (typeof sub !== 'string') throw new Error('Invalid session');
 
+  const name = String(payload.name ?? '');
+  const nickname = String(payload.nickname ?? '').trim() || '사용자';
+
   return {
     id: sub,
     phone: String(payload.phone ?? ''),
-    name: String(payload.name ?? ''),
+    name,
+    nickname,
     region: String(payload.region ?? defaultRegionCode()),
     airtableId: payload.airtableId ? String(payload.airtableId) : undefined,
   };
@@ -84,6 +92,7 @@ export function sessionUserToProfile(user: SessionUser) {
   return {
     id: user.id,
     name: user.name,
+    nickname: user.nickname,
     phone: user.phone,
     region: user.region,
     avatar_url: null as string | null,

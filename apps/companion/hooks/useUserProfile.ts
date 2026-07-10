@@ -42,6 +42,7 @@ export function useUserProfile() {
       const next: UserProfile = {
         id: data.user.id,
         name: data.user.name,
+        nickname: data.user.nickname ?? data.user.name,
         phone: data.user.phone,
         region: data.user.region,
         avatar_url: data.user.avatar_url,

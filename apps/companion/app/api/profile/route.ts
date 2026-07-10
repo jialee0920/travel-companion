@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserById, updateUserProfile } from '@/lib/airtable/users';
+import { getUserById, updateUserProfile, userDisplayName } from '@/lib/airtable/users';
 import {
   createSessionToken,
   getSessionUser,
@@ -102,13 +102,15 @@ export async function PATCH(request: Request) {
     const sessionChanged =
       (region !== undefined && user.region !== session.region) ||
       (name !== undefined && user.name !== session.name) ||
-      (phone !== undefined && user.phone !== session.phone);
+      (phone !== undefined && user.phone !== session.phone) ||
+      userDisplayName(user) !== session.nickname;
 
     if (sessionChanged) {
       const token = await createSessionToken({
         id: user.id,
         phone: user.phone,
         name: user.name,
+        nickname: userDisplayName(user),
         region: user.region,
         airtableId: user.id,
       });

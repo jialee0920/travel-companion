@@ -15,7 +15,7 @@ export function InquiryForm() {
 
   useEffect(() => {
     if (profile) {
-      setName(profile.name);
+      setName(profile.nickname || '');
       setPhone(profile.phone);
     }
   }, [profile]);

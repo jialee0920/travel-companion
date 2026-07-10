@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listNearbyActiveUsers } from '@/lib/airtable/users';
+import { listNearbyActiveUsers, userDisplayName } from '@/lib/airtable/users';
 import { getSessionUser } from '@/lib/auth/session';
 
 export async function GET() {
@@ -13,7 +13,7 @@ export async function GET() {
     return NextResponse.json({
       users: users.map((u) => ({
         id: u.id,
-        name: u.name,
+        name: userDisplayName(u),
         age: u.age,
         bio: u.bio,
         interest_categories: u.interestCategories,

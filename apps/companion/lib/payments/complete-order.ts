@@ -1,4 +1,4 @@
-import { upsertUser } from '@/lib/airtable/users';
+import { getUserById, maskDisplayName, upsertUser, userDisplayName } from '@/lib/airtable/users';
 import { generateOrderCode } from '@/lib/geo';
 import { addParticipant, incrementProductCount, saveOrder, updateOrderPayment } from '@/lib/db/orders';
 
@@ -22,17 +22,22 @@ export async function completeOrderAfterPayment(input: CompleteOrderInput): Prom
     region: input.region,
   });
 
+  // 공개 참여자 표시는 Nickname 기준 (profileId 우선)
+  const profileUser =
+    (input.profileId ? await getUserById(input.profileId) : null) ?? user;
+  const displayName = maskDisplayName(userDisplayName(profileUser));
+
   const order = await updateOrderPayment(input.merchantUid, {
     payment_status: 'paid',
     imp_uid: input.pgTransactionId,
-    profile_id: user.id,
+    profile_id: input.profileId ?? user.id,
   });
 
   if (order) {
     await addParticipant({
       product_id: input.productId,
-      profile_id: user.id,
-      display_name: input.name.slice(0, 1) + '**',
+      profile_id: input.profileId ?? user.id,
+      display_name: displayName,
       order_code: order.order_code,
     });
     await incrementProductCount(input.productId);
@@ -55,8 +60,8 @@ export async function completeOrderAfterPayment(input: CompleteOrderInput): Prom
   });
   await addParticipant({
     product_id: input.productId,
-    profile_id: user.id,
-    display_name: input.name.slice(0, 1) + '**',
+    profile_id: input.profileId ?? user.id,
+    display_name: displayName,
     order_code: orderCode,
   });
   await incrementProductCount(input.productId);

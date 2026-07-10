@@ -73,10 +73,10 @@ export function MypageContent({ initialOrders = [] }: Props) {
       <div className="rounded-[1.25rem] border border-border/80 bg-card p-4 shadow-[var(--shadow-card)]">
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
-            <InitialAvatar name={profile.name} size="lg" />
+            <InitialAvatar name={profile.nickname || '사용자'} size="lg" />
             <div className="min-w-0">
               <p className="truncate text-lg font-bold">
-                {profile.name}
+                {profile.nickname || '사용자'}
                 {profile.age != null ? (
                   <span className="ml-1 text-sm font-medium text-muted-foreground">
                     · 만 {profile.age}세

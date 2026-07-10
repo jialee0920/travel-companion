@@ -5,6 +5,7 @@ export function airtableUserToUserProfile(user: AirtableUser): UserProfile {
   return {
     id: user.id,
     name: user.name,
+    nickname: user.nickname.trim(),
     phone: user.phone,
     region: user.region,
     avatar_url: user.avatarUrl,
