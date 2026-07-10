@@ -25,7 +25,9 @@ export default async function HomePage() {
         }
       />
 
-      <SaleBanner />
+      <div className="mx-4 overflow-hidden rounded-[1.25rem]">
+        <SaleBanner />
+      </div>
 
       <div className="mx-4 mb-3 mt-3 overflow-hidden rounded-[1.25rem] border border-primary/20 bg-primary-muted/60 px-4 py-3">
         <p className="text-sm font-bold text-foreground">공동구매 · 목표 인원 모집</p>

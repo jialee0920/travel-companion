@@ -19,8 +19,8 @@ type Props = {
 };
 
 /**
- * 가로 풀폭 + 원본 비율로 세로 높이 결정.
- * (max-height로 이미지만 줄이면 여백이 생기므로, img가 영역을 꽉 채움)
+ * 안내 박스와 같은 가로 폭(mx-4)으로 살짝 축소.
+ * 원본 비율 유지 + img가 영역을 꽉 채워 여백 없음.
  */
 export function SaleBanner({ href = SALE_BANNER_HREF, className }: Props) {
   const [failed, setFailed] = useState(false);
@@ -29,7 +29,10 @@ export function SaleBanner({ href = SALE_BANNER_HREF, className }: Props) {
     <Link
       href={href}
       aria-label="세일 배너"
-      className={cn('block w-full overflow-hidden bg-primary-muted', className)}
+      className={cn(
+        'mx-4 block overflow-hidden rounded-[1.25rem]',
+        className,
+      )}
     >
       {failed ? (
         <div
