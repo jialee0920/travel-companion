@@ -15,23 +15,12 @@ import {
   listGatheringMemberProfiles,
 } from '@/lib/db/gathering-participants';
 import { countAppliedApplicants, getGatheringById } from '@/lib/db/gatherings';
+import { formatGatheringDateLong } from '@/lib/gatherings/datetime';
 import { getRegionDisplayName } from '@/lib/regions';
 
 type Props = {
   params: Promise<{ id: string }>;
 };
-
-function formatGatheringDate(value: string | null): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  return date.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'short',
-  });
-}
 
 export default async function GatheringDetailPage({ params }: Props) {
   const { id } = await params;
@@ -55,7 +44,7 @@ export default async function GatheringDetailPage({ params }: Props) {
     countAppliedApplicants(gathering.id),
   ]);
 
-  const dateLabel = formatGatheringDate(gathering.gathering_date);
+  const dateLabel = formatGatheringDateLong(gathering.gathering_date);
   const isFull =
     gathering.status === 'closed' ||
     gathering.current_count >= gathering.target_count;

@@ -24,6 +24,7 @@ import type {
 } from '@/lib/db/gathering-participants';
 import { getCategoryBadgeClass } from '@/lib/design-system';
 import { formatDistance, temperatureLabel } from '@/lib/geo';
+import { formatGatheringDateShort } from '@/lib/gatherings/datetime';
 import { getRegionDisplayName } from '@/lib/regions';
 import { CATEGORY_LABELS, type CompanionCategory } from '@/lib/regions/types';
 import { cn } from '@/lib/utils';
@@ -62,17 +63,6 @@ type ContentProps = {
   onClose: () => void;
   chatActive?: boolean;
 };
-
-function formatGatheringDate(value: string | null): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  return date.toLocaleDateString('ko-KR', {
-    month: 'short',
-    day: 'numeric',
-    weekday: 'short',
-  });
-}
 
 export function companionToProfilePerson(
   companion: CompanionListItem,
@@ -468,7 +458,7 @@ function UserProfileSheetContent({ person, onClose, chatActive = false }: Conten
             {!gatheringsLoading && !gatheringsError && gatherings && gatherings.length > 0 && (
               <ul className="flex flex-col gap-2.5 pb-2">
                 {gatherings.map((item) => {
-                  const dateLabel = formatGatheringDate(item.gathering_date);
+                  const dateLabel = formatGatheringDateShort(item.gathering_date);
                   return (
                     <li key={item.id}>
                       <Link

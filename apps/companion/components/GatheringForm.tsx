@@ -4,6 +4,10 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { GatheringRecord, GatheringStatus } from '@/lib/db/gatherings';
+import {
+  combineGatheringDateTime,
+  splitGatheringDateTime,
+} from '@/lib/gatherings/datetime';
 import { GATHERING_REGION_OPTIONS, NATIONAL_REGION_CODE } from '@/lib/regions/product-tabs';
 import { cn } from '@/lib/utils';
 
@@ -15,34 +19,28 @@ type Props =
       applicantCount: number;
     };
 
-function toDateInputValue(value: string | null): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
 export function GatheringForm(props: Props) {
   const router = useRouter();
   const isEdit = props.mode === 'edit';
   const gathering = isEdit ? props.gathering : null;
   const applicantCount = isEdit ? props.applicantCount : 0;
   const minTarget = Math.max(2, gathering?.current_count ?? 2);
+  const initialDateTime = splitGatheringDateTime(gathering?.gathering_date ?? null);
 
   const [title, setTitle] = useState(gathering?.title ?? '');
   const [description, setDescription] = useState(gathering?.description ?? '');
   const [region, setRegion] = useState(gathering?.region ?? NATIONAL_REGION_CODE);
   const [targetCount, setTargetCount] = useState(String(gathering?.target_count ?? 4));
-  const [gatheringDate, setGatheringDate] = useState(
-    toDateInputValue(gathering?.gathering_date ?? null),
-  );
+  const [gatheringDate, setGatheringDate] = useState(initialDateTime.date);
+  const [gatheringTime, setGatheringTime] = useState(initialDateTime.time);
   const [status, setStatus] = useState<GatheringStatus>(gathering?.status ?? 'open');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+
+  function resolvedGatheringDate(): string | null {
+    return combineGatheringDateTime(gatheringDate, gatheringTime);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,7 +76,7 @@ export function GatheringForm(props: Props) {
             description: description.trim(),
             region,
             target_count: count,
-            gathering_date: gatheringDate || null,
+            gathering_date: resolvedGatheringDate(),
             status,
           }),
         });
@@ -95,7 +93,7 @@ export function GatheringForm(props: Props) {
             description: description.trim(),
             region,
             target_count: count,
-            gathering_date: gatheringDate || null,
+            gathering_date: resolvedGatheringDate(),
           }),
         });
         const data = await res.json();
@@ -206,17 +204,39 @@ export function GatheringForm(props: Props) {
         </span>
       </label>
 
-      <label className="block">
+      <div className="block">
         <span className="text-sm font-medium">
-          동행 날짜 <span className="font-normal text-muted-foreground">(선택)</span>
+          동행 일시 <span className="font-normal text-muted-foreground">(선택)</span>
         </span>
-        <input
-          type="date"
-          value={gatheringDate}
-          onChange={(e) => setGatheringDate(e.target.value)}
-          className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
-        />
-      </label>
+        <div className="mt-1.5 grid grid-cols-2 gap-2">
+          <label className="block">
+            <span className="sr-only">날짜</span>
+            <input
+              type="date"
+              value={gatheringDate}
+              onChange={(e) => {
+                const next = e.target.value;
+                setGatheringDate(next);
+                if (!next) setGatheringTime('');
+              }}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
+            />
+          </label>
+          <label className="block">
+            <span className="sr-only">시간</span>
+            <input
+              type="time"
+              value={gatheringTime}
+              disabled={!gatheringDate}
+              onChange={(e) => setGatheringTime(e.target.value)}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm disabled:opacity-50"
+            />
+          </label>
+        </div>
+        <span className="mt-1 block text-xs text-muted-foreground">
+          날짜를 고른 뒤 시간을 선택하세요. (예: 오후 6:00)
+        </span>
+      </div>
 
       {isEdit && (
         <fieldset>

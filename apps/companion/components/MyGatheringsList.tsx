@@ -6,19 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Calendar, Loader2, MapPin, Users } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { UserGatheringListItem } from '@/lib/db/gathering-participants';
+import { formatGatheringDateShort } from '@/lib/gatherings/datetime';
 import { getRegionDisplayName } from '@/lib/regions';
 import { cn } from '@/lib/utils';
-
-function formatGatheringDate(value: string | null): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  return date.toLocaleDateString('ko-KR', {
-    month: 'short',
-    day: 'numeric',
-    weekday: 'short',
-  });
-}
 
 export function MyGatheringsList() {
   const router = useRouter();
@@ -88,7 +78,7 @@ export function MyGatheringsList() {
   return (
     <ul className="flex flex-col gap-3 px-4">
       {items.map((item) => {
-        const dateLabel = formatGatheringDate(item.gathering_date);
+        const dateLabel = formatGatheringDateShort(item.gathering_date);
         const closed =
           item.status === 'closed' || item.current_count >= item.target_count;
 

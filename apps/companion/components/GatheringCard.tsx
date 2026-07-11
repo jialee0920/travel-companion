@@ -4,26 +4,16 @@ import { Calendar, MapPin, Users } from 'lucide-react';
 import Link from 'next/link';
 import { AuthorChatAvatar } from '@/components/AuthorChatAvatar';
 import type { GatheringRecord } from '@/lib/db/gatherings';
+import { formatGatheringDateShort } from '@/lib/gatherings/datetime';
 import { getRegionDisplayName } from '@/lib/regions';
 import { cn } from '@/lib/utils';
-
-function formatGatheringDate(value: string | null): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  return date.toLocaleDateString('ko-KR', {
-    month: 'short',
-    day: 'numeric',
-    weekday: 'short',
-  });
-}
 
 type Props = {
   gathering: GatheringRecord;
 };
 
 export function GatheringCard({ gathering }: Props) {
-  const dateLabel = formatGatheringDate(gathering.gathering_date);
+  const dateLabel = formatGatheringDateShort(gathering.gathering_date);
   const closed = gathering.status === 'closed';
 
   return (
