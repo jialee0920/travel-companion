@@ -26,7 +26,17 @@ export const IOS_LOCATION_BLOCKED_HELP =
 
 export function isIosDevice(): boolean {
   if (typeof navigator === 'undefined') return false;
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua)) return true;
+  // iPadOS 13+ 는 MacIntel + 터치로 보고되는 경우가 있음
+  if (
+    navigator.platform === 'MacIntel' &&
+    typeof navigator.maxTouchPoints === 'number' &&
+    navigator.maxTouchPoints > 1
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function userGestureGeolocationErrorMessage(err: GeolocationPositionError): string {

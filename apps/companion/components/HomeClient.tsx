@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bell, Loader2, MapPin, Search } from 'lucide-react';
 import { getRegion } from '@/lib/regions';
 import type { CategoryFilter } from '@/lib/regions/types';
@@ -18,8 +18,11 @@ import { BottomChrome } from '@/components/BottomChrome';
 import { LocationAllowPrompt } from '@/components/LocationAllowPrompt';
 import { LocationConsentBanner } from '@/components/LocationConsentBanner';
 import { bottomChromePaddingClass } from '@/lib/bottom-chrome';
+import { isIosDevice } from '@/lib/geo/browser-geolocation';
 
 const region = getRegion();
+
+type Platform = 'unknown' | 'ios' | 'other';
 
 /** 위치 기반 동행 찾기 화면 (지도는 추후 카카오맵 연동) */
 export function HomeClient() {
@@ -27,6 +30,15 @@ export function HomeClient() {
   const { profile } = useUserProfile();
   const [category, setCategory] = useState<CategoryFilter>('all');
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [platform, setPlatform] = useState<Platform>('unknown');
+
+  useEffect(() => {
+    setPlatform(isIosDevice() ? 'ios' : 'other');
+  }, []);
+
+  const isIos = platform === 'ios';
+  // iOS·감지 전에는 geolocation을 켜지 않음 (권한 팝업/실패 루프 방지)
+  const locationEnabled = platform === 'other';
 
   const {
     position,
@@ -38,7 +50,7 @@ export function HomeClient() {
     reportError,
     startLoading,
     retryFromUserGesture,
-  } = useGeolocation(true);
+  } = useGeolocation(locationEnabled);
 
   const hasLocation = position != null;
 
@@ -67,11 +79,15 @@ export function HomeClient() {
 
   const activeCompanion = companions.find((c) => c.id === activeId) ?? null;
 
-  const needsLocation = !hasLocation && !useRegionFallback;
+  const needsLocation = locationEnabled && !hasLocation && !useRegionFallback;
   const showConsentBanner = consentReady && consented === null && needsLocation;
   const showLocationOverlay = needsLocation && consented !== null;
-  const locationFailed = !hasLocation && (useRegionFallback || !!geoError);
-  const locationPending = !hasLocation && geoLoading && !locationFailed;
+  const locationFailed =
+    locationEnabled && !hasLocation && (useRegionFallback || !!geoError);
+  const locationPending =
+    locationEnabled && !hasLocation && geoLoading && !locationFailed;
+  // iOS(또는 감지 전): 권한 UI 없이 카카오맵 준비중 안내만
+  const showMapComingSoon = isIos || platform === 'unknown';
 
   function handleConsentGranted(pos: Parameters<typeof applyPosition>[0]) {
     accept();
@@ -120,7 +136,15 @@ export function HomeClient() {
       <CategoryFilterBar active={category} onChange={setCategory} />
 
       <section className="relative mx-4 mt-1 overflow-hidden rounded-[1.25rem] border border-border bg-secondary/40">
-        {locationPending ? (
+        {showMapComingSoon ? (
+          <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
+            <MapPin className="size-8 text-muted-foreground/50" />
+            <p className="text-sm font-semibold text-muted-foreground">지도 준비중입니다</p>
+            <p className="text-xs text-muted-foreground/80">
+              곧 카카오맵으로 주변 동행을 볼 수 있어요
+            </p>
+          </div>
+        ) : locationPending ? (
           <div className="flex h-48 flex-col items-center justify-center gap-3 px-6 text-center">
             <Loader2 className="size-8 animate-spin text-primary" />
             <p className="text-sm font-semibold text-foreground">
@@ -185,7 +209,9 @@ export function HomeClient() {
             <p className="rounded-[1.25rem] border border-border bg-card py-10 text-center text-sm text-muted-foreground">
               {hasLocation
                 ? '주변에 표시할 동행이 없습니다.'
-                : '표시할 동행이 없습니다. 위치를 허용하면 주변 동행을 볼 수 있어요.'}
+                : isIos
+                  ? '표시할 동행이 없습니다.'
+                  : '표시할 동행이 없습니다. 위치를 허용하면 주변 동행을 볼 수 있어요.'}
             </p>
           ) : (
             companions.map((c) => (
