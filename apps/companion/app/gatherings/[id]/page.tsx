@@ -3,8 +3,15 @@ import { Calendar, MapPin, Users } from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
 import { AuthorChatAvatar } from '@/components/AuthorChatAvatar';
 import { CommentSection } from '@/components/CommentSection';
+import { GatheringApplyButton } from '@/components/GatheringApplyButton';
+import { GatheringParticipants } from '@/components/GatheringParticipants';
 import { PageShell } from '@/components/PageShell';
+import { getSessionUser } from '@/lib/auth/session';
 import { listComments } from '@/lib/db/comments';
+import {
+  hasUserApplied,
+  listGatheringMemberProfiles,
+} from '@/lib/db/gathering-participants';
 import { getGatheringById } from '@/lib/db/gatherings';
 import { getRegionDisplayName } from '@/lib/regions';
 
@@ -29,8 +36,25 @@ export default async function GatheringDetailPage({ params }: Props) {
   const gathering = await getGatheringById(id);
   if (!gathering) notFound();
 
-  const comments = await listComments('gathering', id);
+  const session = await getSessionUser();
+  const [comments, members, initiallyApplied] = await Promise.all([
+    listComments('gathering', id),
+    listGatheringMemberProfiles({
+      gatheringId: gathering.id,
+      authorId: gathering.author_id,
+      authorName: gathering.author_name,
+      authorAvatarUrl: gathering.author_avatar_url,
+    }),
+    session
+      ? hasUserApplied(gathering.id, session.id)
+      : Promise.resolve(false),
+  ]);
+
   const dateLabel = formatGatheringDate(gathering.gathering_date);
+  const isFull =
+    gathering.status === 'closed' ||
+    gathering.current_count >= gathering.target_count;
+  const loginReturnUrl = `/gatherings/${gathering.id}`;
 
   return (
     <PageShell active="explore" hideNav>
@@ -41,8 +65,8 @@ export default async function GatheringDetailPage({ params }: Props) {
           <span className="rounded-md bg-primary-muted px-2 py-0.5 text-xs font-bold text-primary">
             {getRegionDisplayName(gathering.region)}
           </span>
-          {gathering.status === 'closed' && (
-            <span className="text-xs font-semibold text-muted-foreground">모집 마감</span>
+          {isFull && (
+            <span className="text-xs font-semibold text-muted-foreground">모집 완료</span>
           )}
         </div>
         <h2 className="mt-2 text-xl font-bold">{gathering.title}</h2>
@@ -79,13 +103,23 @@ export default async function GatheringDetailPage({ params }: Props) {
             </p>
           )}
         </div>
+
+        <GatheringApplyButton
+          gatheringId={gathering.id}
+          authorId={gathering.author_id}
+          initialGathering={gathering}
+          initiallyApplied={initiallyApplied}
+          loginReturnUrl={loginReturnUrl}
+        />
       </article>
+
+      <GatheringParticipants members={members} />
 
       <CommentSection
         targetType="gathering"
         targetId={gathering.id}
         initialComments={comments}
-        loginReturnUrl={`/gatherings/${gathering.id}`}
+        loginReturnUrl={loginReturnUrl}
       />
     </PageShell>
   );

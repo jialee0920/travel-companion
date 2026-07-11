@@ -3,6 +3,7 @@ import {
   escapeAirtableFormula,
   getRecord,
   listRecords,
+  updateRecord,
 } from './client';
 import { requireAirtableConfig } from './config';
 import { resolveAuthorAvatars } from '@/lib/users/avatars';
@@ -141,4 +142,29 @@ export async function findGatheringsByAuthor(authorId: string): Promise<Gatherin
     filterByFormula: formula,
   });
   return records.map(mapGathering);
+}
+
+export async function updateGatheringCounts(
+  gatheringId: string,
+  input: { currentCount: number; status?: GatheringStatus },
+): Promise<GatheringRecord> {
+  const config = requireAirtableConfig();
+  const fields: AirtableGatheringFields = {
+    'Current Count': input.currentCount,
+  };
+  if (input.status) fields.Status = input.status;
+
+  const updated = await updateRecord<AirtableGatheringFields>(
+    config.gatheringsTable,
+    gatheringId,
+    fields,
+    { typecast: true },
+  );
+  const gathering = mapGathering(updated);
+  if (!gathering.author_id) return gathering;
+  const avatars = await resolveAuthorAvatars([gathering.author_id]);
+  return {
+    ...gathering,
+    author_avatar_url: avatars.get(gathering.author_id) ?? null,
+  };
 }

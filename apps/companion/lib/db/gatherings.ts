@@ -3,6 +3,7 @@ import {
   createGathering as createAirtableGathering,
   getGatheringById as getAirtableGatheringById,
   listGatherings as listAirtableGatherings,
+  updateGatheringCounts as updateAirtableGatheringCounts,
   type GatheringRecord,
   type GatheringStatus,
 } from '@/lib/airtable/gatherings';
@@ -56,4 +57,25 @@ export async function createGathering(input: {
   };
   memoryGatherings.set(row.id, row);
   return row;
+}
+
+export async function updateGatheringCounts(
+  gatheringId: string,
+  input: { currentCount: number; status?: GatheringStatus },
+): Promise<GatheringRecord> {
+  if (getAirtableConfig()) {
+    return updateAirtableGatheringCounts(gatheringId, input);
+  }
+
+  const existing = memoryGatherings.get(gatheringId);
+  if (!existing) {
+    throw new Error('모집글을 찾을 수 없습니다.');
+  }
+  const updated: GatheringRecord = {
+    ...existing,
+    current_count: input.currentCount,
+    status: input.status ?? existing.status,
+  };
+  memoryGatherings.set(gatheringId, updated);
+  return updated;
 }
