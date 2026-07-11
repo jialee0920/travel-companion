@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://donghaeng.me'),
+  metadataBase: new URL('https://www.donghaeng.me'),
   title: '동행 · 함께할 사람을 찾다',
   description:
     '실시간 동행 매칭과 공동구매. 식사, 운동, 여행 동행을 함께 즐겨보세요.',
@@ -24,15 +24,20 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'ko_KR',
-    url: 'https://donghaeng.me',
+    url: 'https://www.donghaeng.me',
     siteName: '동행',
     title: '동행 - 함께할 사람을 찾다',
     description:
       '실시간 동행 매칭과 공동구매. 식사, 운동, 여행 동행을 함께 즐겨보세요.',
     images: [
       {
-        url: 'https://donghaeng.me/logo.png',
+        // apex(donghaeng.me)는 www로 308 리다이렉트되므로 www 절대경로 사용
+        // logo.png(2.4MB)는 카카오 미리보기 실패 → 페이지 프로필 사진으로 폴백됨
+        url: 'https://www.donghaeng.me/og-image.jpg',
+        width: 1200,
+        height: 1200,
         alt: '동행',
+        type: 'image/jpeg',
       },
     ],
   },
@@ -41,7 +46,7 @@ export const metadata: Metadata = {
     title: '동행 - 함께할 사람을 찾다',
     description:
       '실시간 동행 매칭과 공동구매. 식사, 운동, 여행 동행을 함께 즐겨보세요.',
-    images: ['https://donghaeng.me/logo.png'],
+    images: ['https://www.donghaeng.me/og-image.jpg'],
   },
 };
 
