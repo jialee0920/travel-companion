@@ -2,17 +2,30 @@ import { getAirtableConfig } from '@/lib/airtable/config';
 import {
   createGatheringParticipant as createAirtableParticipant,
   findAppliedParticipant as findAirtableApplied,
+  listAppliedParticipationsByUser as listAirtableParticipationsByUser,
   listGatheringMemberProfiles as listAirtableMemberProfiles,
   type GatheringMemberProfile,
   type GatheringParticipantRecord,
 } from '@/lib/airtable/gathering-participants';
 import {
+  findGatheringsByAuthor,
   getGatheringById,
   updateGatheringCounts,
   type GatheringRecord,
 } from '@/lib/db/gatherings';
 
 export type { GatheringMemberProfile, GatheringParticipantRecord };
+
+export type UserGatheringListItem = {
+  id: string;
+  title: string;
+  region: string;
+  gathering_date: string | null;
+  current_count: number;
+  target_count: number;
+  role: 'host' | 'participant';
+  created_at: string;
+};
 
 type MemoryParticipant = GatheringParticipantRecord;
 
@@ -73,6 +86,66 @@ export async function listGatheringMemberProfiles(input: {
     });
   }
   return members;
+}
+
+export async function listUserGatherings(userId: string): Promise<UserGatheringListItem[]> {
+  const authored = await findGatheringsByAuthor(userId);
+  const byId = new Map<string, UserGatheringListItem>();
+
+  for (const g of authored) {
+    byId.set(g.id, {
+      id: g.id,
+      title: g.title,
+      region: g.region,
+      gathering_date: g.gathering_date,
+      current_count: g.current_count,
+      target_count: g.target_count,
+      role: 'host',
+      created_at: g.created_at,
+    });
+  }
+
+  if (getAirtableConfig()) {
+    const participations = await listAirtableParticipationsByUser(userId);
+    const joined = await Promise.all(
+      participations.map((p) => getGatheringById(p.gathering_id)),
+    );
+    for (const g of joined) {
+      if (!g || byId.has(g.id)) continue;
+      byId.set(g.id, {
+        id: g.id,
+        title: g.title,
+        region: g.region,
+        gathering_date: g.gathering_date,
+        current_count: g.current_count,
+        target_count: g.target_count,
+        role: 'participant',
+        created_at: g.created_at,
+      });
+    }
+  } else {
+    for (const row of memoryParticipants.values()) {
+      if (row.user_id !== userId || row.status !== 'applied') continue;
+      if (byId.has(row.gathering_id)) continue;
+      const g = await getGatheringById(row.gathering_id);
+      if (!g) continue;
+      byId.set(g.id, {
+        id: g.id,
+        title: g.title,
+        region: g.region,
+        gathering_date: g.gathering_date,
+        current_count: g.current_count,
+        target_count: g.target_count,
+        role: 'participant',
+        created_at: g.created_at,
+      });
+    }
+  }
+
+  return [...byId.values()].sort((a, b) => {
+    if (a.role !== b.role) return a.role === 'host' ? -1 : 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 }
 
 export type ApplyGatheringResult = {

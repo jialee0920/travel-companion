@@ -86,6 +86,23 @@ export async function listAppliedParticipants(
     );
 }
 
+export async function listAppliedParticipationsByUser(
+  userId: string,
+): Promise<GatheringParticipantRecord[]> {
+  const config = requireAirtableConfig();
+  const formula = `AND({User ID}="${escapeAirtableFormula(userId)}",{Status}="applied")`;
+  const records = await listRecords<AirtableGatheringParticipantFields>(
+    config.gatheringParticipantsTable,
+    { filterByFormula: formula },
+  );
+  return records
+    .map(mapParticipant)
+    .sort(
+      (a, b) =>
+        new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime(),
+    );
+}
+
 export async function createGatheringParticipant(input: {
   gatheringId: string;
   userId: string;

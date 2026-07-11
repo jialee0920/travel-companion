@@ -1,6 +1,7 @@
 import { getAirtableConfig } from '@/lib/airtable/config';
 import {
   createGathering as createAirtableGathering,
+  findGatheringsByAuthor as findAirtableGatheringsByAuthor,
   getGatheringById as getAirtableGatheringById,
   listGatherings as listAirtableGatherings,
   updateGatheringCounts as updateAirtableGatheringCounts,
@@ -26,6 +27,15 @@ export async function getGatheringById(id: string): Promise<GatheringRecord | nu
     return getAirtableGatheringById(id);
   }
   return memoryGatherings.get(id) ?? null;
+}
+
+export async function findGatheringsByAuthor(authorId: string): Promise<GatheringRecord[]> {
+  if (getAirtableConfig()) {
+    return findAirtableGatheringsByAuthor(authorId);
+  }
+  return [...memoryGatherings.values()]
+    .filter((g) => g.author_id === authorId)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 export async function createGathering(input: {
