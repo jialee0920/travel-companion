@@ -47,8 +47,7 @@ function isTabSelected(id: NavTab, href: string, pathname: string, active?: NavT
     return (
       pathname === '/group-buy' ||
       pathname.startsWith('/group-buy/') ||
-      pathname.startsWith('/product/') ||
-      pathname.startsWith('/orders')
+      pathname.startsWith('/product/')
     );
   }
 
@@ -57,7 +56,11 @@ function isTabSelected(id: NavTab, href: string, pathname: string, active?: NavT
   }
 
   if (id === 'profile') {
-    return pathname.startsWith('/mypage') || pathname.startsWith('/profile');
+    return (
+      pathname.startsWith('/mypage') ||
+      pathname.startsWith('/profile') ||
+      pathname.startsWith('/orders')
+    );
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);

@@ -24,6 +24,7 @@ export type UserGatheringListItem = {
   gathering_date: string | null;
   current_count: number;
   target_count: number;
+  status: 'open' | 'closed';
   role: 'host' | 'participant';
   created_at: string;
 };
@@ -101,6 +102,7 @@ export async function listUserGatherings(userId: string): Promise<UserGatheringL
       gathering_date: g.gathering_date,
       current_count: g.current_count,
       target_count: g.target_count,
+      status: g.status,
       role: 'host',
       created_at: g.created_at,
     });
@@ -120,6 +122,7 @@ export async function listUserGatherings(userId: string): Promise<UserGatheringL
         gathering_date: g.gathering_date,
         current_count: g.current_count,
         target_count: g.target_count,
+        status: g.status,
         role: 'participant',
         created_at: g.created_at,
       });
@@ -137,6 +140,7 @@ export async function listUserGatherings(userId: string): Promise<UserGatheringL
         gathering_date: g.gathering_date,
         current_count: g.current_count,
         target_count: g.target_count,
+        status: g.status,
         role: 'participant',
         created_at: g.created_at,
       });

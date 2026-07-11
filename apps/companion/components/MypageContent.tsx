@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -9,12 +9,11 @@ import {
   LogOut,
   Pencil,
   Phone,
+  Search,
   ShoppingBag,
 } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { formatPrice } from '@/lib/geo';
-import type { OrderRecord } from '@/lib/db/orders';
 import { getRegionDisplayName } from '@/lib/regions';
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -23,15 +22,9 @@ const CATEGORY_EMOJI: Record<string, string> = {
   여행: '✈️',
 };
 
-type Props = {
-  initialOrders?: OrderRecord[];
-};
-
-export function MypageContent({ initialOrders = [] }: Props) {
+export function MypageContent() {
   const router = useRouter();
   const { profile, ready, loading, logout } = useUserProfile();
-  const [orders, setOrders] = useState<OrderRecord[]>(initialOrders);
-  const [loadingOrders, setLoadingOrders] = useState(false);
 
   useEffect(() => {
     if (!ready || !profile) return;
@@ -41,18 +34,6 @@ export function MypageContent({ initialOrders = [] }: Props) {
       );
     }
   }, [ready, profile, router]);
-
-  useEffect(() => {
-    if (!profile?.id) return;
-
-    setLoadingOrders(true);
-    fetch(`/api/orders/mine?profileId=${encodeURIComponent(profile.id)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.orders) setOrders(data.orders);
-      })
-      .finally(() => setLoadingOrders(false));
-  }, [profile?.id]);
 
   async function handleLogout() {
     await logout();
@@ -137,6 +118,17 @@ export function MypageContent({ initialOrders = [] }: Props) {
 
       <div className="overflow-hidden rounded-[1.25rem] border border-border/80 bg-card shadow-[var(--shadow-card)]">
         <Link
+          href="/mypage/gatherings"
+          className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/40"
+        >
+          <span className="flex size-9 items-center justify-center rounded-full bg-primary-muted text-primary">
+            <Search className="size-4" />
+          </span>
+          <span className="flex-1 text-sm font-medium">내 동행</span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </Link>
+        <div className="mx-4 border-t border-border" />
+        <Link
           href="/orders"
           className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/40"
         >
@@ -144,11 +136,6 @@ export function MypageContent({ initialOrders = [] }: Props) {
             <ShoppingBag className="size-4" />
           </span>
           <span className="flex-1 text-sm font-medium">내 공동구매</span>
-          {orders.length > 0 && (
-            <span className="flex size-5 items-center justify-center rounded-full bg-primary text-micro font-bold text-primary-foreground">
-              {orders.length > 9 ? '9+' : orders.length}
-            </span>
-          )}
           <ChevronRight className="size-4 text-muted-foreground" />
         </Link>
         <div className="mx-4 border-t border-border" />
@@ -168,55 +155,6 @@ export function MypageContent({ initialOrders = [] }: Props) {
           <span className="flex-1 text-sm font-medium">로그아웃</span>
         </button>
       </div>
-
-      <section>
-        <div className="mb-3 flex items-center justify-between px-0.5">
-          <h2 className="text-sm font-bold">공동구매 참여 내역</h2>
-          <Link href="/orders" className="text-xs font-medium text-primary">
-            전체 보기
-          </Link>
-        </div>
-
-        {loadingOrders ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : orders.length === 0 ? (
-          <p className="rounded-[1.25rem] border border-border/80 bg-card py-10 text-center text-sm text-muted-foreground shadow-[var(--shadow-card)]">
-            참여한 공동구매가 없습니다.
-            <br />
-            <Link href="/group-buy" className="mt-1 inline-block text-primary">
-              공동구매 둘러보기
-            </Link>
-          </p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {orders.map((order) => (
-              <div
-                key={order.id}
-                className="rounded-[1.25rem] border border-border/80 bg-card p-4 shadow-[var(--shadow-card)]"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-semibold">{order.product_name}</p>
-                  <span
-                    className={
-                      order.payment_status === 'paid'
-                        ? 'shrink-0 rounded-md bg-success-muted px-2 py-0.5 text-xs font-semibold text-success'
-                        : 'shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground'
-                    }
-                  >
-                    {order.payment_status === 'paid' ? '결제완료' : order.payment_status}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="font-mono text-xs text-primary">{order.order_code}</span>
-                  <span className="font-bold">{formatPrice(order.amount)}원</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
