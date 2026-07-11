@@ -1,5 +1,6 @@
 import {
   createRecord,
+  deleteRecord,
   escapeAirtableFormula,
   getRecord,
   listRecords,
@@ -167,4 +168,51 @@ export async function updateGatheringCounts(
     ...gathering,
     author_avatar_url: avatars.get(gathering.author_id) ?? null,
   };
+}
+
+export async function updateGathering(
+  gatheringId: string,
+  input: {
+    title: string;
+    description: string;
+    region: string;
+    targetCount: number;
+    gatheringDate?: string | null;
+    status: GatheringStatus;
+  },
+): Promise<GatheringRecord> {
+  const config = requireAirtableConfig();
+  const fields: AirtableGatheringFields = {
+    Title: input.title.trim(),
+    Description: input.description.trim(),
+    Region: input.region.trim(),
+    'Target Count': input.targetCount,
+    Status: input.status,
+    'Gathering Date': input.gatheringDate?.trim() || undefined,
+  };
+
+  // 날짜 비우기: Airtable에 null로 전달
+  const payloadFields: Record<string, unknown> = { ...fields };
+  if (!input.gatheringDate?.trim()) {
+    payloadFields['Gathering Date'] = null;
+  }
+
+  const updated = await updateRecord<AirtableGatheringFields>(
+    config.gatheringsTable,
+    gatheringId,
+    payloadFields as AirtableGatheringFields,
+    { typecast: true },
+  );
+  const gathering = mapGathering(updated);
+  if (!gathering.author_id) return gathering;
+  const avatars = await resolveAuthorAvatars([gathering.author_id]);
+  return {
+    ...gathering,
+    author_avatar_url: avatars.get(gathering.author_id) ?? null,
+  };
+}
+
+export async function deleteGathering(gatheringId: string): Promise<void> {
+  const config = requireAirtableConfig();
+  await deleteRecord(config.gatheringsTable, gatheringId);
 }

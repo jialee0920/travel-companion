@@ -127,4 +127,12 @@ export async function updateRecord<T extends Record<string, unknown>>(
   return data.records[0];
 }
 
+export async function deleteRecord(table: string, id: string): Promise<void> {
+  const config = requireAirtableConfig();
+  await airtableFetch(config, table, {
+    method: 'DELETE',
+    recordId: id,
+  });
+}
+
 export { escapeAirtableFormula };

@@ -1,5 +1,5 @@
 import { AppHeader } from '@/components/AppHeader';
-import { GatheringCreateForm } from '@/components/GatheringCreateForm';
+import { GatheringForm } from '@/components/GatheringForm';
 import { PageShell } from '@/components/PageShell';
 
 export default function GatheringNewPage() {
@@ -10,7 +10,7 @@ export default function GatheringNewPage() {
         subtitle="동행할 사람을 모집해 보세요"
         backHref="/gatherings"
       />
-      <GatheringCreateForm />
+      <GatheringForm mode="create" />
     </PageShell>
   );
 }

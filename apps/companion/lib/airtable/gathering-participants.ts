@@ -1,4 +1,4 @@
-import { createRecord, escapeAirtableFormula, listRecords } from './client';
+import { createRecord, deleteRecord, escapeAirtableFormula, listRecords } from './client';
 import { requireAirtableConfig } from './config';
 import { getUserById, userDisplayName } from './users';
 
@@ -101,6 +101,25 @@ export async function listAppliedParticipationsByUser(
       (a, b) =>
         new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime(),
     );
+}
+
+export async function listParticipantsByGathering(
+  gatheringId: string,
+): Promise<GatheringParticipantRecord[]> {
+  const config = requireAirtableConfig();
+  const formula = `{Gathering ID}="${escapeAirtableFormula(gatheringId)}"`;
+  const records = await listRecords<AirtableGatheringParticipantFields>(
+    config.gatheringParticipantsTable,
+    { filterByFormula: formula },
+  );
+  return records.map(mapParticipant);
+}
+
+export async function deleteParticipantsByGathering(gatheringId: string): Promise<number> {
+  const rows = await listParticipantsByGathering(gatheringId);
+  const config = requireAirtableConfig();
+  await Promise.all(rows.map((row) => deleteRecord(config.gatheringParticipantsTable, row.id)));
+  return rows.length;
 }
 
 export async function createGatheringParticipant(input: {

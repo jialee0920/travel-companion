@@ -4,6 +4,7 @@ import { AppHeader } from '@/components/AppHeader';
 import { AuthorChatAvatar } from '@/components/AuthorChatAvatar';
 import { CommentSection } from '@/components/CommentSection';
 import { GatheringApplyButton } from '@/components/GatheringApplyButton';
+import { GatheringAuthorActions } from '@/components/GatheringAuthorActions';
 import { GatheringParticipants } from '@/components/GatheringParticipants';
 import { PageShell } from '@/components/PageShell';
 import { getSessionUser } from '@/lib/auth/session';
@@ -12,7 +13,7 @@ import {
   hasUserApplied,
   listGatheringMemberProfiles,
 } from '@/lib/db/gathering-participants';
-import { getGatheringById } from '@/lib/db/gatherings';
+import { countAppliedApplicants, getGatheringById } from '@/lib/db/gatherings';
 import { getRegionDisplayName } from '@/lib/regions';
 
 type Props = {
@@ -37,7 +38,9 @@ export default async function GatheringDetailPage({ params }: Props) {
   if (!gathering) notFound();
 
   const session = await getSessionUser();
-  const [comments, members, initiallyApplied] = await Promise.all([
+  const isAuthor = !!session && session.id === gathering.author_id;
+
+  const [comments, members, initiallyApplied, applicantCount] = await Promise.all([
     listComments('gathering', id),
     listGatheringMemberProfiles({
       gatheringId: gathering.id,
@@ -48,6 +51,7 @@ export default async function GatheringDetailPage({ params }: Props) {
     session
       ? hasUserApplied(gathering.id, session.id)
       : Promise.resolve(false),
+    countAppliedApplicants(gathering.id),
   ]);
 
   const dateLabel = formatGatheringDate(gathering.gathering_date);
@@ -104,13 +108,20 @@ export default async function GatheringDetailPage({ params }: Props) {
           )}
         </div>
 
-        <GatheringApplyButton
-          gatheringId={gathering.id}
-          authorId={gathering.author_id}
-          initialGathering={gathering}
-          initiallyApplied={initiallyApplied}
-          loginReturnUrl={loginReturnUrl}
-        />
+        {isAuthor ? (
+          <GatheringAuthorActions
+            gatheringId={gathering.id}
+            applicantCount={applicantCount}
+          />
+        ) : (
+          <GatheringApplyButton
+            gatheringId={gathering.id}
+            authorId={gathering.author_id}
+            initialGathering={gathering}
+            initiallyApplied={initiallyApplied}
+            loginReturnUrl={loginReturnUrl}
+          />
+        )}
       </article>
 
       <GatheringParticipants members={members} />
