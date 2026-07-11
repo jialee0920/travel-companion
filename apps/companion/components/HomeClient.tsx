@@ -73,6 +73,8 @@ export function HomeClient() {
         // 실제 GPS가 있을 때만 거리 계산·반경 필터 적용
         userLat: position?.lat,
         userLng: position?.lng,
+        // mock 동행자(지우·도현·하늘 등) 목록 비표시 — 데이터/로직은 유지
+        includeMocks: false,
       }),
     [category, position, nearbyUsers],
   );

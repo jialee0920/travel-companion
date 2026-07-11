@@ -101,10 +101,23 @@ export function buildCompanionList(options: {
   radiusKm: number;
   userLat?: number;
   userLng?: number;
+  /** false면 mock 동행자 제외 (데이터·변환 로직은 유지) */
+  includeMocks?: boolean;
 }): CompanionListItem[] {
-  const { mocks, realUsers, spots, category, radiusKm, userLat, userLng } = options;
+  const {
+    mocks,
+    realUsers,
+    spots,
+    category,
+    radiusKm,
+    userLat,
+    userLng,
+    includeMocks = true,
+  } = options;
 
-  const displayMocks = prepareMocksForDisplay(mocks, userLat, userLng, radiusKm);
+  const displayMocks = includeMocks
+    ? prepareMocksForDisplay(mocks, userLat, userLng, radiusKm)
+    : [];
   const mockItems = displayMocks.map((c) => mockToListItem(c, userLat, userLng));
   const realItems: CompanionListItem[] = [];
 
