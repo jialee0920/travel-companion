@@ -93,6 +93,12 @@ export async function PATCH(request: Request) {
       }
     }
 
+    console.info('[PATCH /api/profile] nickname payload', {
+      userId: session.id,
+      nickname,
+      sessionNickname: session.nickname,
+    });
+
     const user = await updateUserProfile(session.id, {
       bio: bio !== undefined ? (bio?.trim() || null) : undefined,
       interestCategories:
@@ -105,6 +111,12 @@ export async function PATCH(request: Request) {
       name: name !== undefined ? name.trim() : undefined,
       nickname: nickname !== undefined ? nickname.trim() : undefined,
       phone: phone !== undefined ? phone : undefined,
+    });
+
+    console.info('[PATCH /api/profile] saved user nickname', {
+      userId: user.id,
+      nickname: user.nickname,
+      displayName: userDisplayName(user),
     });
 
     const response = NextResponse.json({ user: airtableUserToUserProfile(user) });
@@ -125,6 +137,9 @@ export async function PATCH(request: Request) {
         airtableId: user.id,
       });
       setSessionCookie(response, token);
+      console.info('[PATCH /api/profile] session nickname refreshed', {
+        nickname: userDisplayName(user),
+      });
     }
 
     return response;

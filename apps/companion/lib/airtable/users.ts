@@ -261,10 +261,21 @@ export async function upsertKakaoUser(input: {
 
   const existing = await findUserByKakaoId(kakaoId);
   if (existing) {
-    // Nickname은 카카오 최신값으로 갱신, Name·Avatar URL은 덮어쓰지 않음
+    // 사용자가 설정한 Nickname은 보존. 비어 있을 때만 카카오 닉네임으로 채움.
+    // Name·Avatar URL은 덮어쓰지 않음.
     const fields: Partial<AirtableUserFields> = {};
-    if (existing.nickname !== nickname) {
+    if (!existing.nickname.trim() && nickname) {
       fields.Nickname = nickname;
+      console.info('[upsertKakaoUser] empty Nickname filled from Kakao', {
+        userId: existing.id,
+        nickname,
+      });
+    } else {
+      console.info('[upsertKakaoUser] preserve existing Nickname', {
+        userId: existing.id,
+        existingNickname: existing.nickname,
+        kakaoNickname: nickname,
+      });
     }
     if (Object.keys(fields).length === 0) return existing;
     const updated = await updateRecord<AirtableUserFields>(config.usersTable, existing.id, fields);
@@ -326,8 +337,28 @@ export async function updateUserProfile(
     fields['Avatar URL'] = input.avatarUrl?.trim() || undefined;
   }
 
-  const updated = await updateRecord<AirtableUserFields>(config.usersTable, userId, fields);
-  return mapUser(updated);
+  console.info('[updateUserProfile] writing fields', {
+    userId,
+    nickname: input.nickname,
+    fieldKeys: Object.keys(fields),
+  });
+
+  await updateRecord<AirtableUserFields>(config.usersTable, userId, fields, {
+    typecast: true,
+  });
+
+  // PATCH 응답은 부분 필드일 수 있어 전체 레코드를 다시 조회
+  const refreshed = await getUserById(userId);
+  if (!refreshed) {
+    throw new Error('프로필 저장 후 사용자를 찾을 수 없습니다.');
+  }
+
+  console.info('[updateUserProfile] saved Nickname', {
+    userId,
+    nickname: refreshed.nickname,
+  });
+
+  return refreshed;
 }
 
 export async function updateUserLocation(

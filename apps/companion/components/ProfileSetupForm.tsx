@@ -137,6 +137,7 @@ export function ProfileSetupForm({
     if (includeAge && age.trim()) {
       payload.age = Number(age);
     }
+    console.info('[ProfileSetupForm] save payload nickname', payload.nickname);
     const res = await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -144,6 +145,7 @@ export function ProfileSetupForm({
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? '프로필 저장 실패');
+    console.info('[ProfileSetupForm] saved response nickname', data.user?.nickname);
     return data.user;
   }
 
