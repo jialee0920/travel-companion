@@ -93,7 +93,24 @@ export function GroupBuyWidget({ product }: Props) {
   if (isKakaoChannel) {
     return (
       <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <div className="flex items-center">
+          <span className="rounded-lg bg-primary-muted px-2 py-1 text-sm font-bold text-primary">
+            얼리버드
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-1 text-sm">
+          <div className="flex justify-between text-muted-foreground">
+            <span>정가</span>
+            <span className="line-through">{formatPrice(product.regularPrice)}원</span>
+          </div>
+          <div className="flex justify-between font-semibold">
+            <span>공동구매가</span>
+            <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
+          </div>
+        </div>
+
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           동행찾기에서 묵호 시그널 모집글을 확인하고 신청해보세요
         </p>
         <Link

@@ -13,7 +13,17 @@ import {
 } from './product-seeds';
 
 function parseActionType(value: unknown): ProductActionType {
-  return value === 'kakao_channel' ? 'kakao_channel' : 'payment';
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== 'string') return 'payment';
+  const normalized = raw.trim().toLowerCase();
+  if (
+    normalized === 'kakao_channel' ||
+    normalized === 'kakao channel' ||
+    normalized.includes('kakao')
+  ) {
+    return 'kakao_channel';
+  }
+  return 'payment';
 }
 
 function parseExternalLink(value: unknown): string | null {
