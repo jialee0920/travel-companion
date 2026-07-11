@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, MessageCircle, Plus, User } from 'lucide-react';
+import { PeerProfileSheet } from '@/components/PeerProfileSheet';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { getRegion } from '@/lib/regions';
 import type { ChatRoomWithPeer } from '@/lib/chat/types';
@@ -39,6 +40,7 @@ export function ChatRoomList() {
   const [showNew, setShowNew] = useState(false);
   const [realUsers, setRealUsers] = useState<RealUser[]>([]);
   const [loadingRealUsers, setLoadingRealUsers] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const region = getRegion();
 
@@ -245,11 +247,16 @@ export function ChatRoomList() {
         <ul className="flex flex-col gap-2">
           {rooms.map((room) => (
             <li key={room.id}>
-              <Link
-                href={`/chat/${room.id}`}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 transition-colors hover:bg-secondary/30"
-              >
-                <span className="relative size-12 shrink-0 overflow-hidden rounded-full bg-secondary">
+              <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 transition-colors hover:bg-secondary/30">
+                <button
+                  type="button"
+                  aria-label={`${room.peer.name} 프로필 보기`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setProfileUserId(room.peer.id);
+                  }}
+                  className="relative size-12 shrink-0 overflow-hidden rounded-full bg-secondary"
+                >
                   {room.peer.avatar_url ? (
                     <Image
                       src={room.peer.avatar_url}
@@ -263,8 +270,8 @@ export function ChatRoomList() {
                       {room.peer.name.slice(0, 1)}
                     </span>
                   )}
-                </span>
-                <span className="min-w-0 flex-1">
+                </button>
+                <Link href={`/chat/${room.id}`} className="min-w-0 flex-1">
                   <span className="flex items-center justify-between gap-2">
                     <span className="truncate font-semibold">{room.peer.name}</span>
                     <span className="shrink-0 text-micro text-muted-foreground">
@@ -279,12 +286,18 @@ export function ChatRoomList() {
                   >
                     {room.last_message ?? '대화를 시작해보세요'}
                   </span>
-                </span>
-              </Link>
+                </Link>
+              </div>
             </li>
           ))}
         </ul>
       )}
+
+      <PeerProfileSheet
+        userId={profileUserId}
+        chatActive
+        onClose={() => setProfileUserId(null)}
+      />
     </div>
   );
 }

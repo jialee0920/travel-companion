@@ -53,11 +53,14 @@ type SheetView = 'profile' | 'gatherings';
 type Props = {
   person: ProfileSheetPerson | null;
   onClose: () => void;
+  /** 이미 채팅 중인 상대 — 채팅 버튼 대신 "대화 중" 표시 */
+  chatActive?: boolean;
 };
 
 type ContentProps = {
   person: ProfileSheetPerson;
   onClose: () => void;
+  chatActive?: boolean;
 };
 
 function formatGatheringDate(value: string | null): string | null {
@@ -113,21 +116,53 @@ export function memberToProfilePerson(
   };
 }
 
-export function UserProfileSheet({ person, onClose }: Props) {
-  if (!person) return null;
-  return <UserProfileSheetContent person={person} onClose={onClose} />;
+export type PublicUserProfile = {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  age: number | null;
+  region: string | null;
+  bio: string | null;
+  interest_categories: string[];
+  companion_seed_id?: string | null;
+};
+
+export function publicUserToProfilePerson(user: PublicUserProfile): ProfileSheetPerson {
+  return {
+    userId: user.id,
+    name: user.name,
+    avatarUrl: user.avatar_url,
+    age: user.age,
+    locationLabel: user.region ? getRegionDisplayName(user.region) : null,
+    bio: user.bio?.trim() || '',
+    interestCategories: user.interest_categories ?? [],
+    companionSeedId: user.companion_seed_id ?? null,
+  };
 }
 
-function UserProfileSheetContent({ person, onClose }: ContentProps) {
+export function UserProfileSheet({ person, onClose, chatActive = false }: Props) {
+  if (!person) return null;
+  return (
+    <UserProfileSheetContent
+      person={person}
+      onClose={onClose}
+      chatActive={chatActive}
+    />
+  );
+}
+
+function UserProfileSheetContent({ person, onClose, chatActive = false }: ContentProps) {
   const { startChat, startingId, profileId } = useStartChat();
   const isSelf = !!profileId && !!person.userId && profileId === person.userId;
   const canChat =
+    !chatActive &&
     !isSelf &&
     ((!!person.userId && person.userId !== profileId) ||
       !!person.companionSeedId?.trim());
   const busyKey = person.userId || person.companionSeedId || '';
   const busy = startingId != null && startingId === busyKey;
   const canViewGatherings = !!person.userId;
+  const showChatAction = canChat || chatActive;
 
   const [view, setView] = useState<SheetView>('profile');
   const [gatherings, setGatherings] = useState<UserGatheringListItem[] | null>(null);
@@ -343,10 +378,20 @@ function UserProfileSheetContent({ person, onClose }: ContentProps) {
             <div
               className={cn(
                 'mx-5 mt-6 flex gap-2',
-                !canChat && !canViewGatherings && 'hidden',
-                !canChat && canViewGatherings && 'flex-col',
+                !showChatAction && !canViewGatherings && 'hidden',
+                !showChatAction && canViewGatherings && 'flex-col',
               )}
             >
+              {chatActive && (
+                <button
+                  type="button"
+                  disabled
+                  className="flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-secondary px-2 text-sm font-semibold text-muted-foreground"
+                >
+                  <MessageCircle className="size-4 shrink-0" />
+                  대화 중
+                </button>
+              )}
               {canChat && (
                 <button
                   type="button"
@@ -368,7 +413,7 @@ function UserProfileSheetContent({ person, onClose }: ContentProps) {
                   onClick={openGatherings}
                   className={cn(
                     'flex h-12 items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-2 text-sm font-semibold text-foreground',
-                    canChat ? 'min-w-0 flex-1' : 'w-full',
+                    showChatAction ? 'min-w-0 flex-1' : 'w-full',
                   )}
                 >
                   <Users className="size-4 shrink-0" />

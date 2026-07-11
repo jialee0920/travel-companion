@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Send } from 'lucide-react';
+import { PeerProfileSheet } from '@/components/PeerProfileSheet';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { CHAT_POLL_INTERVAL_MS, type ChatMessageRow } from '@/lib/chat/types';
 import { cn } from '@/lib/utils';
@@ -19,8 +20,10 @@ function formatMessageTime(iso: string) {
 export function ChatRoomView({ roomId }: Props) {
   const { profile, ready } = useUserProfile();
   const [messages, setMessages] = useState<ChatMessageRow[]>([]);
+  const [peerId, setPeerId] = useState<string | null>(null);
   const [peerName, setPeerName] = useState('');
   const [peerAvatar, setPeerAvatar] = useState<string | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -74,6 +77,7 @@ export function ChatRoomView({ roomId }: Props) {
         if (cancelled) return;
         const room = (data.rooms ?? []).find((r: { id: string }) => r.id === roomId);
         if (room?.peer) {
+          setPeerId(room.peer.id ?? null);
           setPeerName(room.peer.name);
           setPeerAvatar(room.peer.avatar_url);
         }
@@ -173,19 +177,26 @@ export function ChatRoomView({ roomId }: Props) {
         >
           <ArrowLeft className="size-4" />
         </Link>
-        <span className="relative size-9 overflow-hidden rounded-full bg-secondary">
-          {peerAvatar ? (
-            <Image src={peerAvatar} alt="" fill className="object-cover" sizes="36px" />
-          ) : (
-            <span className="flex size-full items-center justify-center text-sm font-bold text-primary">
-              {peerName.slice(0, 1) || '?'}
-            </span>
-          )}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-bold">{peerName || '대화'}</h1>
-          <p className="text-xs text-muted-foreground">1:1 동행 채팅</p>
-        </div>
+        <button
+          type="button"
+          onClick={() => peerId && setProfileOpen(true)}
+          disabled={!peerId}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition-opacity hover:opacity-80 disabled:opacity-100"
+        >
+          <span className="relative size-9 shrink-0 overflow-hidden rounded-full bg-secondary">
+            {peerAvatar ? (
+              <Image src={peerAvatar} alt="" fill className="object-cover" sizes="36px" />
+            ) : (
+              <span className="flex size-full items-center justify-center text-sm font-bold text-primary">
+                {peerName.slice(0, 1) || '?'}
+              </span>
+            )}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-base font-bold">{peerName || '대화'}</span>
+            <span className="block text-xs text-muted-foreground">1:1 동행 채팅</span>
+          </span>
+        </button>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -258,6 +269,12 @@ export function ChatRoomView({ roomId }: Props) {
           {sending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
         </button>
       </form>
+
+      <PeerProfileSheet
+        userId={profileOpen ? peerId : null}
+        chatActive
+        onClose={() => setProfileOpen(false)}
+      />
     </div>
   );
 }
