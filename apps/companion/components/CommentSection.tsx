@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, MessageSquare, Pencil, Trash2 } from 'lucide-react';
 import { AuthorChatAvatar } from '@/components/AuthorChatAvatar';
+import { PeerProfileSheet } from '@/components/PeerProfileSheet';
 import type { CommentRecord, CommentTargetType } from '@/lib/db/comments';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
@@ -40,6 +41,7 @@ export function CommentSection({
   const [editBody, setEditBody] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const commentApiBase = `/api/comments/${targetType}/${encodeURIComponent(targetId)}`;
 
@@ -177,6 +179,7 @@ export function CommentSection({
                     size="sm"
                     showName
                     nameClassName="text-sm font-semibold"
+                    onAuthorClick={setProfileUserId}
                   />
                   <div className="flex shrink-0 items-center gap-1">
                     {isOwner && !isEditing && (
@@ -254,6 +257,11 @@ export function CommentSection({
       </ul>
 
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+
+      <PeerProfileSheet
+        userId={profileUserId}
+        onClose={() => setProfileUserId(null)}
+      />
 
       {!ready ? (
         <div className="mt-4 flex justify-center py-2">
