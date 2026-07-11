@@ -1,4 +1,10 @@
-import { createRecord, deleteRecord, escapeAirtableFormula, listRecords } from './client';
+import {
+  createRecord,
+  deleteRecord,
+  escapeAirtableFormula,
+  listRecords,
+  updateRecord,
+} from './client';
 import { requireAirtableConfig } from './config';
 import { getUserById, userDisplayName } from './users';
 
@@ -141,6 +147,20 @@ export async function createGatheringParticipant(input: {
     { typecast: true },
   );
   return mapParticipant(created);
+}
+
+/** applied → cancelled (레코드 유지, 참여 목록·카운트에서 제외) */
+export async function cancelGatheringParticipant(
+  participantId: string,
+): Promise<GatheringParticipantRecord> {
+  const config = requireAirtableConfig();
+  const updated = await updateRecord<AirtableGatheringParticipantFields>(
+    config.gatheringParticipantsTable,
+    participantId,
+    { Status: 'cancelled' },
+    { typecast: true },
+  );
+  return mapParticipant(updated);
 }
 
 /** 작성자(맨 앞) + applied 신청자 프로필 */

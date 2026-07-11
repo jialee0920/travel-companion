@@ -1,5 +1,6 @@
 import { getAirtableConfig } from '@/lib/airtable/config';
 import {
+  cancelGatheringParticipant as cancelAirtableParticipant,
   createGatheringParticipant as createAirtableParticipant,
   findAppliedParticipant as findAirtableApplied,
   listAppliedParticipationsByUser as listAirtableParticipationsByUser,
@@ -215,4 +216,48 @@ export async function applyToGathering(input: {
   });
 
   return { gathering: updated, alreadyApplied: false };
+}
+
+export type CancelGatheringResult = {
+  gathering: GatheringRecord;
+};
+
+export async function cancelGatheringApplication(input: {
+  gatheringId: string;
+  userId: string;
+}): Promise<CancelGatheringResult> {
+  const gathering = await getGatheringById(input.gatheringId);
+
+  if (!gathering) {
+    throw new ApplyGatheringError('모집글을 찾을 수 없습니다.', 404);
+  }
+  if (gathering.author_id === input.userId) {
+    throw new ApplyGatheringError('작성자는 참여 취소할 수 없습니다.', 400);
+  }
+
+  if (getAirtableConfig()) {
+    const participant = await findAirtableApplied(input.gatheringId, input.userId);
+    if (!participant) {
+      throw new ApplyGatheringError('신청 내역이 없습니다.', 404);
+    }
+    await cancelAirtableParticipant(participant.id);
+  } else {
+    const key = memoryKey(input.gatheringId, input.userId);
+    const row = memoryParticipants.get(key);
+    if (!row || row.status !== 'applied') {
+      throw new ApplyGatheringError('신청 내역이 없습니다.', 404);
+    }
+    memoryParticipants.set(key, { ...row, status: 'cancelled' });
+  }
+
+  // 작성자(1) 미만으로 내려가지 않음
+  const nextCount = Math.max(1, gathering.current_count - 1);
+  const nextStatus =
+    nextCount < gathering.target_count ? 'open' : gathering.status;
+  const updated = await updateGatheringCounts(input.gatheringId, {
+    currentCount: nextCount,
+    status: nextStatus,
+  });
+
+  return { gathering: updated };
 }
