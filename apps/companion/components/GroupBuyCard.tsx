@@ -51,15 +51,11 @@ export function GroupBuyCard({ product, compact }: Props) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          {isPreparing ? (
-            <span className="rounded-md bg-secondary px-1.5 py-0.5 text-micro font-bold text-muted-foreground">
-              준비중
-            </span>
-          ) : (
-            <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
-              {formatDiscountPercent(product.discountRate)}% 할인
-            </span>
-          )}
+          <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
+            {isPreparing
+              ? '준비중'
+              : `${formatDiscountPercent(product.discountRate)}% 할인`}
+          </span>
           {isComplete && (
             <span className="text-micro font-semibold text-muted-foreground">
               모집 완료
