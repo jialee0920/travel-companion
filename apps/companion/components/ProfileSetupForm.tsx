@@ -256,7 +256,7 @@ export function ProfileSetupForm({
             className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
           />
           <span className="mt-1 block text-xs text-muted-foreground">
-            실명을 입력해주세요. 다른 사용자에게는 보이지 않아요.
+            모집 확정/구매 확정을 위해 정확히 입력해주세요. 다른 사용자에게는 보이지 않아요.
           </span>
         </label>
 
