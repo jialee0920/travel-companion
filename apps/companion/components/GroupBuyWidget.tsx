@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, Loader2, Users } from 'lucide-react';
+import { ArrowRight, Loader2, Users } from 'lucide-react';
 import type { RegionProduct } from '@/lib/regions/types';
 import { formatPrice, perPersonCharge } from '@/lib/geo';
 import { formatDiscountPercent } from '@/lib/products/format';
@@ -29,15 +30,6 @@ export function GroupBuyWidget({ product }: Props) {
     !isKakaoChannel &&
     (product.groupBuyStatus === 'success' || product.currentCount >= product.targetCount);
   const charge = perPersonCharge(product.discountedPrice, product.targetCount);
-
-  function handleKakaoChannelApply() {
-    if (!product.externalLink) {
-      setStatus('error');
-      setMessage('신청 링크가 아직 등록되지 않았습니다.');
-      return;
-    }
-    window.open(product.externalLink, '_blank', 'noopener,noreferrer');
-  }
 
   async function handleParticipate() {
     if (!ready) return;
@@ -102,21 +94,15 @@ export function GroupBuyWidget({ product }: Props) {
     return (
       <div className="rounded-2xl border border-border bg-card p-4">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          이 상품은 카카오채널에서 신청할 수 있어요. 상세 안내는 위 설명을 확인해 주세요.
+          동행찾기에서 묵호 시그널 모집글을 확인하고 신청해보세요
         </p>
-        <button
-          type="button"
-          onClick={handleKakaoChannelApply}
+        <Link
+          href="/gatherings"
           className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-primary-foreground"
         >
-          <ExternalLink className="size-5" />
-          카카오채널에서 신청하기
-        </button>
-        {message && (
-          <p className="mt-3 rounded-xl bg-destructive-muted px-3 py-2 text-sm text-destructive">
-            {message}
-          </p>
-        )}
+          동행 모집글 보러가기
+          <ArrowRight className="size-5" />
+        </Link>
       </div>
     );
   }
