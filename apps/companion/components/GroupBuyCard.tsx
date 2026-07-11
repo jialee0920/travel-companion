@@ -43,21 +43,13 @@ export function GroupBuyCard({ product, compact }: Props) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          {isKakaoChannel ? (
-            <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
-              얼리버드
+          <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
+            {formatDiscountPercent(product.discountRate)}% 할인
+          </span>
+          {isComplete && (
+            <span className="text-micro font-semibold text-muted-foreground">
+              모집 완료
             </span>
-          ) : (
-            <>
-              <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
-                {formatDiscountPercent(product.discountRate)}% 할인
-              </span>
-              {isComplete && (
-                <span className="text-micro font-semibold text-muted-foreground">
-                  모집 완료
-                </span>
-              )}
-            </>
           )}
         </div>
         <p className="mt-1.5 line-clamp-2 text-sm font-semibold text-foreground">
