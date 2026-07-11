@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, MessageSquare, Pencil, Trash2 } from 'lucide-react';
 import { AuthorChatAvatar } from '@/components/AuthorChatAvatar';
+import { LinkifiedText } from '@/components/LinkifiedText';
 import { PeerProfileSheet } from '@/components/PeerProfileSheet';
 import type { CommentRecord, CommentTargetType } from '@/lib/db/comments';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -246,9 +247,10 @@ export function CommentSection({
                     </div>
                   </div>
                 ) : (
-                  <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                    {comment.body}
-                  </p>
+                  <LinkifiedText
+                    text={comment.body}
+                    className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-foreground"
+                  />
                 )}
               </li>
             );

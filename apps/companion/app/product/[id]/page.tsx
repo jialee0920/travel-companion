@@ -5,6 +5,7 @@ import { ChevronLeft, Store } from 'lucide-react';
 import { BottomChrome } from '@/components/BottomChrome';
 import { CommentSection } from '@/components/CommentSection';
 import { GroupBuyWidget } from '@/components/GroupBuyWidget';
+import { LinkifiedText } from '@/components/LinkifiedText';
 import { bottomChromePaddingClass } from '@/lib/bottom-chrome';
 import { listComments } from '@/lib/db/comments';
 import { listParticipants } from '@/lib/db/orders';
@@ -55,7 +56,10 @@ export default async function ProductPage({ params }: Props) {
         {product.ticketLabel ? (
           <p className="mt-1 text-xs font-medium text-primary">{product.ticketLabel}</p>
         ) : null}
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{product.description}</p>
+        <LinkifiedText
+          text={product.description}
+          className="mt-2 text-sm leading-relaxed text-muted-foreground"
+        />
       </div>
 
       <div className="px-5">

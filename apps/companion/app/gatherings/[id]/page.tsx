@@ -6,6 +6,7 @@ import { CommentSection } from '@/components/CommentSection';
 import { GatheringApplyButton } from '@/components/GatheringApplyButton';
 import { GatheringAuthorActions } from '@/components/GatheringAuthorActions';
 import { GatheringParticipants } from '@/components/GatheringParticipants';
+import { LinkifiedText } from '@/components/LinkifiedText';
 import { PageShell } from '@/components/PageShell';
 import { getSessionUser } from '@/lib/auth/session';
 import { listComments } from '@/lib/db/comments';
@@ -85,9 +86,10 @@ export default async function GatheringDetailPage({ params }: Props) {
           />
         </div>
 
-        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-          {gathering.description}
-        </p>
+        <LinkifiedText
+          text={gathering.description}
+          className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-foreground"
+        />
 
         <div className="mt-5 flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 text-sm">
           <p className="flex items-center gap-2">
