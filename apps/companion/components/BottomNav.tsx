@@ -21,10 +21,10 @@ const TABS: {
   href: string;
 }[] = [
   { id: 'map', label: '지도', icon: Map, href: '/map' },
-  { id: 'explore', label: '탐색', icon: Search, href: '/gatherings' },
   { id: 'group-buy', label: '공동구매', icon: ShoppingBag, href: '/' },
-  { id: 'chat', label: '채팅', icon: MessageCircle, href: '/chat' },
-  { id: 'profile', label: '내 프로필', icon: User, href: '/mypage' },
+  { id: 'explore', label: '동행찾기', icon: Search, href: '/gatherings' },
+  { id: 'chat', label: '대화하기', icon: MessageCircle, href: '/chat' },
+  { id: 'profile', label: '내프로필', icon: User, href: '/mypage' },
 ];
 
 function isTabSelected(id: NavTab, href: string, pathname: string, active?: NavTab): boolean {
@@ -73,7 +73,8 @@ export function BottomNav({ active, embedded }: Props) {
         {TABS.map(({ id, label, icon: Icon, href }) => {
           const selected = isTabSelected(id, href, pathname, active);
 
-          if (id === 'group-buy') {
+          // 가운데 동행찾기 탭에 검정 원형 강조
+          if (id === 'explore') {
             return (
               <Link
                 key={id}
