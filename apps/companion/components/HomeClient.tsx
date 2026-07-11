@@ -182,7 +182,7 @@ export function HomeClient({ products }: Props) {
 
         {!profile?.id && hasLocation && (
           <div className="absolute left-3 right-3 top-3 z-10 rounded-lg bg-background/90 px-3 py-1.5 text-center text-micro text-warning shadow-sm backdrop-blur-sm">
-            로그인하면 내 위치가 동행 찾기에 반영됩니다
+            로그인하면 5km 반경 내 주변 동행을 확인할 수 있어요
           </div>
         )}
         {profile?.id && hasLocation && locationSaveError && (
