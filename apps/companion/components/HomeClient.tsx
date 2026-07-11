@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Bell, Loader2, MapPin, Search } from 'lucide-react';
 import { getRegion } from '@/lib/regions';
-import type { CategoryFilter, RegionProduct } from '@/lib/regions/types';
+import type { CategoryFilter } from '@/lib/regions/types';
 import { buildCompanionList } from '@/lib/companions/build-list';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useLocationConsent } from '@/hooks/useLocationConsent';
@@ -14,7 +14,6 @@ import { AppHeader } from '@/components/AppHeader';
 import { CategoryFilter as CategoryFilterBar } from '@/components/CategoryFilter';
 import { CompanionCard } from '@/components/CompanionCard';
 import { CompanionDetailSheet } from '@/components/CompanionDetailSheet';
-import { GroupBuySection } from '@/components/GroupBuySection';
 import { BottomChrome } from '@/components/BottomChrome';
 import { LocationAllowPrompt } from '@/components/LocationAllowPrompt';
 import { LocationConsentBanner } from '@/components/LocationConsentBanner';
@@ -23,11 +22,7 @@ import { bottomChromePaddingClass } from '@/lib/bottom-chrome';
 const region = getRegion();
 
 /** 위치 기반 동행 찾기 화면 (지도는 추후 카카오맵 연동) */
-type Props = {
-  products: RegionProduct[];
-};
-
-export function HomeClient({ products }: Props) {
+export function HomeClient() {
   const { accept, decline, consented, ready: consentReady } = useLocationConsent();
   const { profile } = useUserProfile();
   const [category, setCategory] = useState<CategoryFilter>('all');
@@ -123,8 +118,6 @@ export function HomeClient({ products }: Props) {
       </div>
 
       <CategoryFilterBar active={category} onChange={setCategory} />
-
-      {products.length > 0 && <GroupBuySection products={products} variant="home" />}
 
       <section className="relative mx-4 mt-1 overflow-hidden rounded-[1.25rem] border border-border bg-secondary/40">
         {locationPending ? (
