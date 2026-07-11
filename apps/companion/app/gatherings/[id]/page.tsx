@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation';
 import { Calendar, MapPin, Users } from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
-import { AuthorChatAvatar } from '@/components/AuthorChatAvatar';
 import { CommentSection } from '@/components/CommentSection';
 import { GatheringApplyButton } from '@/components/GatheringApplyButton';
 import { GatheringAuthorActions } from '@/components/GatheringAuthorActions';
+import { GatheringAuthorProfile } from '@/components/GatheringAuthorProfile';
 import { GatheringParticipants } from '@/components/GatheringParticipants';
 import { LinkifiedText } from '@/components/LinkifiedText';
 import { PageShell } from '@/components/PageShell';
@@ -75,13 +75,10 @@ export default async function GatheringDetailPage({ params }: Props) {
         </div>
         <h2 className="mt-2 text-xl font-bold">{gathering.title}</h2>
         <div className="mt-2">
-          <AuthorChatAvatar
+          <GatheringAuthorProfile
             authorId={gathering.author_id}
             authorName={gathering.author_name}
             authorAvatarUrl={gathering.author_avatar_url}
-            size="md"
-            showName
-            nameClassName="text-sm text-muted-foreground"
           />
         </div>
 
