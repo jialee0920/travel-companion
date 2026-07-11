@@ -44,14 +44,9 @@ export function GroupBuyCard({ product, compact }: Props) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           {isKakaoChannel ? (
-            <>
-              <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
-                얼리버드
-              </span>
-              <span className="text-micro font-semibold text-muted-foreground">
-                카카오채널에서 신청
-              </span>
-            </>
+            <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
+              얼리버드
+            </span>
           ) : (
             <>
               <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
@@ -68,11 +63,22 @@ export function GroupBuyCard({ product, compact }: Props) {
         <p className="mt-1.5 line-clamp-2 text-sm font-semibold text-foreground">
           {product.name}
         </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {isKakaoChannel
-            ? `${formatPrice(product.discountedPrice)}원`
-            : `${formatPrice(charge)}원 / 1인 청구 · 총 ${formatPrice(product.discountedPrice)}원`}
-        </p>
+        {isKakaoChannel ? (
+          <p className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-xs">
+            {product.regularPrice > 0 && (
+              <span className="text-muted-foreground line-through">
+                {formatPrice(product.regularPrice)}원
+              </span>
+            )}
+            <span className="font-semibold text-primary">
+              {formatPrice(product.discountedPrice)}원
+            </span>
+          </p>
+        ) : (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {formatPrice(charge)}원 / 1인 청구 · 총 {formatPrice(product.discountedPrice)}원
+          </p>
+        )}
         {isKakaoChannel ? (
           <div className="mt-2.5 flex items-center justify-end">
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
