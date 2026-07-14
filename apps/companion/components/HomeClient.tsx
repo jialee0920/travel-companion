@@ -14,11 +14,13 @@ import { AppHeader } from '@/components/AppHeader';
 import { CategoryFilter as CategoryFilterBar } from '@/components/CategoryFilter';
 import { CompanionCard } from '@/components/CompanionCard';
 import { CompanionDetailSheet } from '@/components/CompanionDetailSheet';
+import { CompanionMap } from '@/components/CompanionMap';
 import { BottomChrome } from '@/components/BottomChrome';
 import { LocationAllowPrompt } from '@/components/LocationAllowPrompt';
 import { LocationConsentBanner } from '@/components/LocationConsentBanner';
 import { bottomChromePaddingClass } from '@/lib/bottom-chrome';
 import { isIosDevice } from '@/lib/geo/browser-geolocation';
+import { isKakaoMapKeyConfigured } from '@/lib/kakao/maps-loader';
 
 const region = getRegion();
 
@@ -137,9 +139,9 @@ export function HomeClient() {
 
       <CategoryFilterBar active={category} onChange={setCategory} />
 
-      <section className="relative mx-4 mt-1 overflow-hidden rounded-[1.25rem] border border-border bg-secondary/40">
+      <section className="relative mx-4 mt-1 h-64 overflow-hidden rounded-[1.25rem] border border-border bg-secondary/40 sm:h-72">
         {showMapComingSoon ? (
-          <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
+          <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
             <MapPin className="size-8 text-muted-foreground/50" />
             <p className="text-sm font-semibold text-muted-foreground">지도 준비중입니다</p>
             <p className="text-xs text-muted-foreground/80">
@@ -147,7 +149,7 @@ export function HomeClient() {
             </p>
           </div>
         ) : locationPending ? (
-          <div className="flex h-48 flex-col items-center justify-center gap-3 px-6 text-center">
+          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
             <Loader2 className="size-8 animate-spin text-primary" />
             <p className="text-sm font-semibold text-foreground">
               {geoLoadingMessage || '위치를 확인하는 중…'}
@@ -155,7 +157,7 @@ export function HomeClient() {
             <p className="text-xs text-muted-foreground">잠시만 기다려 주세요</p>
           </div>
         ) : locationFailed || (!hasLocation && !showLocationOverlay) ? (
-          <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
+          <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
             <MapPin className="size-8 text-muted-foreground/50" />
             <p className="text-sm font-semibold text-muted-foreground">지도 준비중입니다</p>
             <p className="text-xs leading-relaxed text-muted-foreground/80">
@@ -170,8 +172,26 @@ export function HomeClient() {
               {geoLoading ? '요청 중…' : '위치 다시 요청하기'}
             </button>
           </div>
+        ) : hasLocation && position ? (
+          isKakaoMapKeyConfigured() ? (
+            <CompanionMap
+              companions={companions}
+              userLat={position.lat}
+              userLng={position.lng}
+              activeId={activeId}
+              onSelect={setActiveId}
+            />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
+              <MapPin className="size-8 text-muted-foreground/50" />
+              <p className="text-sm font-semibold text-muted-foreground">지도 키 설정 대기중</p>
+              <p className="text-xs text-muted-foreground/80">
+                NEXT_PUBLIC_KAKAO_MAP_KEY를 등록하면 카카오맵이 표시돼요
+              </p>
+            </div>
+          )
         ) : (
-          <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
+          <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center">
             <MapPin className="size-8 text-muted-foreground/50" />
             <p className="text-sm font-semibold text-muted-foreground">지도 준비중입니다</p>
             <p className="text-xs text-muted-foreground/80">
@@ -181,17 +201,17 @@ export function HomeClient() {
         )}
 
         {!profile?.id && hasLocation && (
-          <div className="absolute left-3 right-3 top-3 z-10 rounded-lg bg-background/90 px-3 py-1.5 text-center text-micro text-warning shadow-sm backdrop-blur-sm">
+          <div className="pointer-events-none absolute left-3 right-3 top-3 z-30 rounded-lg bg-background/90 px-3 py-1.5 text-center text-micro text-warning shadow-sm backdrop-blur-sm">
             로그인하면 5km 반경 내 주변 동행을 확인할 수 있어요
           </div>
         )}
         {profile?.id && hasLocation && locationSaveError && (
-          <div className="absolute bottom-3 left-3 right-3 z-10 rounded-lg bg-destructive-muted px-3 py-2 text-center text-micro text-destructive shadow-sm backdrop-blur-sm">
+          <div className="absolute bottom-3 left-3 right-14 z-30 rounded-lg bg-destructive-muted px-3 py-2 text-center text-micro text-destructive shadow-sm backdrop-blur-sm">
             {locationSaveError}
           </div>
         )}
         {showLocationOverlay && (
-          <div className="absolute inset-0 z-10 flex items-center bg-background/90 p-3 backdrop-blur-[2px]">
+          <div className="absolute inset-0 z-40 flex items-center bg-background/90 p-3 backdrop-blur-[2px]">
             <LocationAllowPrompt {...locationPromptProps} compact />
           </div>
         )}
