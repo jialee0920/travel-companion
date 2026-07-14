@@ -11,6 +11,7 @@ import {
   type AirtableProductFields,
   mukhoSeedToAirtableFields,
 } from './product-seeds';
+import { parseProductCategory } from '@/lib/regions/product-categories';
 
 function parseActionType(value: unknown): ProductActionType {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -63,7 +64,7 @@ function mapProduct(record: { id: string; fields: AirtableProductFields }): Regi
     description: fields.Description ?? '',
     imageUrl: resolveProductImageUrl(fields['Image URL']),
     sellerName: fields['Seller Name'] ?? '',
-    category: fields.Category ?? '',
+    category: parseProductCategory(fields.Category) ?? '',
     ticketLabel: fields['Ticket Label']?.trim() ?? '',
     regularPrice: Number(fields['Regular Price'] ?? 0),
     discountedPrice: Number(fields['Discounted Price'] ?? 0),
