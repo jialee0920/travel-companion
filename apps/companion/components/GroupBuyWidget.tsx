@@ -174,33 +174,6 @@ export function GroupBuyWidget({ product }: Props) {
     }
   }
 
-  async function handleCancelReservation() {
-    if (!ready || isPreparing || !alreadyReserved || !profile) return;
-
-    setStatus('loading');
-    setMessage('');
-
-    try {
-      const res = await fetch(`/api/products/${encodeURIComponent(product.id)}/reservation`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? '예약 취소 실패');
-
-      setAlreadyReserved(false);
-      setStatus('idle');
-      setMessage(data.message || '예약을 취소했어요.');
-      if (typeof data.currentCount === 'number') {
-        setDisplayCount(data.currentCount);
-      } else {
-        setDisplayCount((prev) => Math.max(0, prev - 1));
-      }
-    } catch (err) {
-      setStatus('error');
-      setMessage(err instanceof Error ? err.message : '오류가 발생했습니다.');
-    }
-  }
-
   if (isPreparing) {
     return (
       <div className="rounded-2xl border border-border bg-card p-4">
@@ -323,50 +296,42 @@ export function GroupBuyWidget({ product }: Props) {
           </p>
         )}
 
-        {reserved ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={handleCancelReservation}
-            className={cn(
-              'mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card text-base font-semibold text-foreground',
-              busy && 'opacity-70',
-            )}
-          >
-            {status === 'loading' ? (
-              <>
-                <Loader2 className="size-5 animate-spin" /> 취소 중…
-              </>
-            ) : (
-              '예약 취소하기'
-            )}
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={!canReserve || busy}
-            onClick={handleReserve}
-            className={cn(
-              'mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold',
-              isReservationFull
-                ? 'cursor-not-allowed bg-muted text-muted-foreground opacity-80'
-                : 'bg-primary text-primary-foreground',
-              busy && canReserve && 'opacity-70',
-            )}
-          >
-            {status === 'loading' || checking ? (
-              <>
-                <Loader2 className="size-5 animate-spin" />
-                {checking ? '확인 중…' : '예약 중…'}
-              </>
-            ) : isReservationFull ? (
-              '예약 마감'
-            ) : profile ? (
-              '사전 예약하기'
-            ) : (
-              '로그인하고 사전 예약하기'
-            )}
-          </button>
+        <button
+          type="button"
+          disabled={reserved || !canReserve || busy}
+          onClick={handleReserve}
+          className={cn(
+            'mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold',
+            reserved || isReservationFull
+              ? 'cursor-not-allowed bg-muted text-muted-foreground opacity-80'
+              : 'bg-primary text-primary-foreground',
+            busy && canReserve && 'opacity-70',
+          )}
+        >
+          {status === 'loading' || checking ? (
+            <>
+              <Loader2 className="size-5 animate-spin" />
+              {checking ? '확인 중…' : '예약 중…'}
+            </>
+          ) : reserved ? (
+            '예약 완료'
+          ) : isReservationFull ? (
+            '예약 마감'
+          ) : profile ? (
+            '사전 예약하기'
+          ) : (
+            '로그인하고 사전 예약하기'
+          )}
+        </button>
+
+        {reserved && (
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            취소는{' '}
+            <Link href="/orders" className="font-medium text-primary underline-offset-2 hover:underline">
+              내 공동구매
+            </Link>
+            에서 할 수 있어요
+          </p>
         )}
 
         {message && (

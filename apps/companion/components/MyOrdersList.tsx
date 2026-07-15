@@ -60,6 +60,47 @@ function reservationBadgeClass(status: ProductReservationStatus): string {
   return 'bg-secondary text-secondary-foreground';
 }
 
+function ItemBody({ item }: { item: ListItem }) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 flex-1 font-semibold leading-snug">{item.product_name}</p>
+        {item.kind === 'order' ? (
+          <span
+            className={cn(
+              'shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold',
+              item.payment_status === 'paid'
+                ? 'bg-success-muted text-success'
+                : item.payment_status === 'failed'
+                  ? 'bg-destructive-muted text-destructive'
+                  : 'bg-muted text-muted-foreground',
+            )}
+          >
+            {paymentLabel(item.payment_status)}
+          </span>
+        ) : (
+          <span
+            className={cn(
+              'shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold',
+              reservationBadgeClass(item.reservation_status),
+            )}
+          >
+            {reservationLabel(item.reservation_status)}
+          </span>
+        )}
+      </div>
+      <div className="mt-2.5 flex items-center justify-between text-sm">
+        <span className="text-xs text-muted-foreground">{formatItemDate(item.date)}</span>
+        {item.kind === 'order' ? (
+          <span className="font-bold">{formatPrice(item.amount)}원</span>
+        ) : (
+          <span className="text-xs text-muted-foreground">-</span>
+        )}
+      </div>
+    </>
+  );
+}
+
 export function MyOrdersList() {
   const router = useRouter();
   const { profile, ready } = useUserProfile();
@@ -159,51 +200,39 @@ export function MyOrdersList() {
 
   return (
     <ul className="flex flex-col gap-3 px-4">
-      {items.map((item) => (
-        <li key={item.id}>
-          <Link
-            href={`/product/${encodeURIComponent(item.product_id)}`}
-            className="block rounded-[1.25rem] border border-border/80 bg-card p-4 shadow-[var(--shadow-card)] transition-colors hover:bg-secondary/30"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p className="min-w-0 flex-1 font-semibold leading-snug">{item.product_name}</p>
-              {item.kind === 'order' ? (
-                <span
-                  className={cn(
-                    'shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold',
-                    item.payment_status === 'paid'
-                      ? 'bg-success-muted text-success'
-                      : item.payment_status === 'failed'
-                        ? 'bg-destructive-muted text-destructive'
-                        : 'bg-muted text-muted-foreground',
-                  )}
-                >
-                  {paymentLabel(item.payment_status)}
-                </span>
-              ) : (
-                <span
-                  className={cn(
-                    'shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold',
-                    reservationBadgeClass(item.reservation_status),
-                  )}
-                >
-                  {reservationLabel(item.reservation_status)}
-                </span>
-              )}
-            </div>
-            <div className="mt-2.5 flex items-center justify-between text-sm">
-              <span className="text-xs text-muted-foreground">
-                {formatItemDate(item.date)}
-              </span>
-              {item.kind === 'order' ? (
-                <span className="font-bold">{formatPrice(item.amount)}원</span>
-              ) : (
-                <span className="text-xs text-muted-foreground">-</span>
-              )}
-            </div>
-          </Link>
-        </li>
-      ))}
+      {items.map((item) => {
+        const isActiveReservation =
+          item.kind === 'reservation' && item.reservation_status === 'reserved';
+        const isPendingPayment =
+          item.kind === 'order' && item.payment_status === 'pending';
+
+        return (
+          <li key={item.id}>
+            {isActiveReservation ? (
+              <Link
+                href={`/orders/reservation/${encodeURIComponent(item.product_id)}`}
+                className="block rounded-[1.25rem] border border-border/80 bg-card p-4 shadow-[var(--shadow-card)] transition-colors hover:bg-secondary/30"
+              >
+                <ItemBody item={item} />
+              </Link>
+            ) : (
+              <div className="rounded-[1.25rem] border border-border/80 bg-card p-4 shadow-[var(--shadow-card)]">
+                <ItemBody item={item} />
+                {isPendingPayment && (
+                  <div className="mt-3 flex justify-end border-t border-border pt-3">
+                    <Link
+                      href={`/inquiry?returnUrl=${encodeURIComponent('/orders')}`}
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground"
+                    >
+                      문의하기
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
