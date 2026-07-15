@@ -8,6 +8,7 @@ export type AirtableProductFields = {
   Name: string;
   Description: string;
   'Image URL'?: string;
+  'Detail Image URL'?: string;
   'Seller Name': string;
   Category: string;
   'Ticket Label': string;
@@ -27,6 +28,7 @@ export const MUKHO_PRODUCT_SEEDS: Omit<RegionProduct, 'region'>[] = [
     name: '묵호항 싱싱 회센터 세트',
     description: '당일 입항 대구·광어 회 2~3인분 + 해물탕. 묵호항에서 바로 픽업.',
     imageUrl: PRODUCT_PLACEHOLDER_IMAGE,
+    detailImageUrl: null,
     sellerName: '묵호수산',
     category: 'social',
     ticketLabel: '2~3인분',
@@ -44,6 +46,7 @@ export const MUKHO_PRODUCT_SEEDS: Omit<RegionProduct, 'region'>[] = [
     name: '논골담길·묵호등대 가이드 투어',
     description: '현지 가이드와 함께하는 3시간 도보 투어. 논골담길 + 묵호등대 코스.',
     imageUrl: PRODUCT_PLACEHOLDER_IMAGE,
+    detailImageUrl: null,
     sellerName: '묵호로컬',
     category: 'social',
     ticketLabel: '1인',
@@ -61,6 +64,7 @@ export const MUKHO_PRODUCT_SEEDS: Omit<RegionProduct, 'region'>[] = [
     name: '동해 특산품 선물세트',
     description: '오징어채·멸치젓·망고빙수 재료 등 묵호·동해 특산품 모음. 택배 발송.',
     imageUrl: PRODUCT_PLACEHOLDER_IMAGE,
+    detailImageUrl: null,
     sellerName: '동해장터',
     category: 'beauty',
     ticketLabel: '1세트',
@@ -84,6 +88,7 @@ export function regionProductToAirtableFields(
     Name: product.name,
     Description: product.description,
     'Image URL': product.imageUrl,
+    'Detail Image URL': product.detailImageUrl ?? undefined,
     'Seller Name': product.sellerName,
     Category: product.category,
     'Ticket Label': product.ticketLabel,

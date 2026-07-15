@@ -26,6 +26,7 @@ export default async function ProductPage({ params }: Props) {
     listComments('product', id),
   ]);
   const imageUrl = resolveProductImageUrl(product.imageUrl);
+  const detailImageUrl = product.detailImageUrl?.trim() || null;
   const isKakaoChannel = product.actionType === 'kakao_channel';
 
   return (
@@ -68,6 +69,18 @@ export default async function ProductPage({ params }: Props) {
           </Link>
         </div>
       )}
+
+      {detailImageUrl ? (
+        <div className="w-full bg-white">
+          {/* 세로로 긴 상세 이미지: 원본 비율 유지, 가로 100% */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={detailImageUrl}
+            alt={`${product.name} 상세`}
+            className="h-auto w-full object-contain"
+          />
+        </div>
+      ) : null}
 
       <div className="px-5 py-5">
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">

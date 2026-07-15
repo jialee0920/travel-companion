@@ -65,6 +65,7 @@ function mapProduct(record: { id: string; fields: AirtableProductFields }): Regi
     name: fields.Name ?? '',
     description: fields.Description ?? '',
     imageUrl: resolveProductImageUrl(fields['Image URL']),
+    detailImageUrl: parseExternalLink(fields['Detail Image URL']),
     sellerName: fields['Seller Name'] ?? '',
     category: parseProductCategory(fields.Category) ?? '',
     ticketLabel: fields['Ticket Label']?.trim() ?? '',
