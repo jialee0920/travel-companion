@@ -117,7 +117,7 @@ export function MyReservationDetail({ product }: Props) {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          지금은 사전 예약 기간이에요. 결제 준비되면 바로 알려드릴게요!
+          지금은 사전 예약 기간이에요. 결제 준비되면 알림으로 알려드릴게요!
         </p>
       </div>
 
