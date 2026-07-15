@@ -19,7 +19,7 @@ type Props = {
 const PAYMENT_NOT_CONFIGURED_MSG =
   '결제 연동 설정 중입니다. PG 키 등록 후 다시 시도해 주세요.';
 
-const RESERVE_SUCCESS_MSG = '예약 완료! 결제 준비되면 알려드릴게요';
+const RESERVE_SUCCESS_MSG = '예약 완료! 결제 준비되면 바로 알려드릴게요!';
 
 export function GroupBuyWidget({ product }: Props) {
   const router = useRouter();
@@ -253,7 +253,7 @@ export function GroupBuyWidget({ product }: Props) {
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          지금은 결제 없이 사전 예약만 받아요. 결제 준비가 되면 알려드릴게요.
+          지금은 사전 예약 기간이에요. 결제 준비되면 바로 알려드릴게요!
         </p>
 
         {profile ? (
