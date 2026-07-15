@@ -6,6 +6,7 @@ import {
   type ProductReservationRecord,
   type ProductReservationStatus,
 } from '@/lib/airtable/product-reservations';
+import { incrementProductCount } from '@/lib/db/orders';
 import { getProductById } from '@/lib/db/products';
 import { normalizePhone } from '@/lib/user-profile';
 
@@ -31,6 +32,17 @@ const memoryReservations = new Map<string, MemoryReservation>();
 
 function memoryKey(productId: string, userId: string) {
   return `${productId}:${userId}`;
+}
+
+function isReservationFull(product: {
+  groupBuyStatus: string;
+  currentCount: number;
+  targetCount: number;
+}): boolean {
+  return (
+    product.groupBuyStatus === 'success' ||
+    (product.targetCount > 0 && product.currentCount >= product.targetCount)
+  );
 }
 
 export async function findUserProductReservation(
@@ -80,7 +92,12 @@ export async function reserveProduct(input: {
   userId: string;
   name: string;
   phone: string;
-}): Promise<{ reservation: ProductReservationRecord; alreadyReserved: boolean }> {
+}): Promise<{
+  reservation: ProductReservationRecord;
+  alreadyReserved: boolean;
+  currentCount: number;
+  targetCount: number;
+}> {
   const product = await getProductById(input.productId);
   if (!product) {
     throw new ProductReservationError('상품을 찾을 수 없습니다.', 404);
@@ -103,7 +120,19 @@ export async function reserveProduct(input: {
 
   const existing = await findUserProductReservation(input.productId, input.userId);
   if (existing) {
-    return { reservation: existing, alreadyReserved: true };
+    return {
+      reservation: existing,
+      alreadyReserved: true,
+      currentCount: product.currentCount,
+      targetCount: product.targetCount,
+    };
+  }
+
+  if (isReservationFull(product)) {
+    throw new ProductReservationError(
+      '목표 인원이 채워져 예약이 마감되었어요.',
+      400,
+    );
   }
 
   if (getAirtableConfig()) {
@@ -113,7 +142,14 @@ export async function reserveProduct(input: {
       name,
       phone,
     });
-    return { reservation, alreadyReserved: false };
+    await incrementProductCount(input.productId);
+    const refreshed = await getProductById(input.productId);
+    return {
+      reservation,
+      alreadyReserved: false,
+      currentCount: refreshed?.currentCount ?? product.currentCount + 1,
+      targetCount: product.targetCount,
+    };
   }
 
   const reservation: MemoryReservation = {
@@ -126,5 +162,10 @@ export async function reserveProduct(input: {
     reserved_at: new Date().toISOString(),
   };
   memoryReservations.set(memoryKey(input.productId, input.userId), reservation);
-  return { reservation, alreadyReserved: false };
+  return {
+    reservation,
+    alreadyReserved: false,
+    currentCount: product.currentCount + 1,
+    targetCount: product.targetCount,
+  };
 }

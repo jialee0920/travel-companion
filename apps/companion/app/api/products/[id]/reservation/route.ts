@@ -52,6 +52,8 @@ export async function POST(_request: Request, { params }: Props) {
     return NextResponse.json({
       reservation: result.reservation,
       alreadyReserved: result.alreadyReserved,
+      currentCount: result.currentCount,
+      targetCount: result.targetCount,
       message: result.alreadyReserved
         ? '이미 사전 예약한 상품입니다.'
         : '예약 완료! 결제 준비되면 바로 알려드릴게요!',

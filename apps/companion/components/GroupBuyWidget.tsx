@@ -28,6 +28,7 @@ export function GroupBuyWidget({ product }: Props) {
   const [message, setMessage] = useState('');
   const [alreadyReserved, setAlreadyReserved] = useState(false);
   const [reservationChecked, setReservationChecked] = useState(false);
+  const [displayCount, setDisplayCount] = useState(product.currentCount);
 
   const isKakaoChannel = product.actionType === 'kakao_channel';
   const isReservation = product.actionType === 'reservation';
@@ -37,7 +38,16 @@ export function GroupBuyWidget({ product }: Props) {
     !isReservation &&
     !isPreparing &&
     (product.groupBuyStatus === 'success' || product.currentCount >= product.targetCount);
+  const isReservationFull =
+    isReservation &&
+    !isPreparing &&
+    (product.groupBuyStatus === 'success' ||
+      (product.targetCount > 0 && displayCount >= product.targetCount));
   const charge = perPersonCharge(product.discountedPrice, product.targetCount);
+
+  useEffect(() => {
+    setDisplayCount(product.currentCount);
+  }, [product.currentCount]);
 
   useEffect(() => {
     if (!isReservation || !ready) return;
@@ -130,7 +140,7 @@ export function GroupBuyWidget({ product }: Props) {
   }
 
   async function handleReserve() {
-    if (!ready || isPreparing || alreadyReserved) return;
+    if (!ready || isPreparing || alreadyReserved || isReservationFull) return;
 
     if (!profile) {
       const returnUrl = encodeURIComponent(
@@ -153,6 +163,11 @@ export function GroupBuyWidget({ product }: Props) {
       setAlreadyReserved(true);
       setStatus('paid');
       setMessage(data.message || RESERVE_SUCCESS_MSG);
+      if (typeof data.currentCount === 'number') {
+        setDisplayCount(data.currentCount);
+      } else if (!data.alreadyReserved) {
+        setDisplayCount((prev) => prev + 1);
+      }
     } catch (err) {
       setStatus('error');
       setMessage(err instanceof Error ? err.message : '오류가 발생했습니다.');
@@ -232,12 +247,17 @@ export function GroupBuyWidget({ product }: Props) {
   if (isReservation) {
     const reserved = alreadyReserved || status === 'paid';
     const checking = Boolean(profile?.id) && !reservationChecked;
+    const canReserve = !reserved && !isReservationFull;
 
     return (
       <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="flex items-center">
+        <div className="flex items-center justify-between gap-2">
           <span className="rounded-lg bg-primary-muted px-2 py-1 text-sm font-bold text-primary">
             사전 예약
+          </span>
+          <span className="flex items-center gap-1 text-sm font-semibold">
+            <Users className="size-4 text-primary" />
+            목표 {product.targetCount}명 · 현재 {displayCount}명
           </span>
         </div>
 
@@ -256,6 +276,12 @@ export function GroupBuyWidget({ product }: Props) {
           지금은 사전 예약 기간이에요. 결제 준비되면 바로 알려드릴게요!
         </p>
 
+        {isReservationFull && (
+          <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-center text-sm font-medium text-secondary-foreground">
+            목표 달성! 곧 결제 안내드려요
+          </p>
+        )}
+
         {profile ? (
           <p className="mt-4 rounded-xl bg-secondary px-3 py-2 text-sm text-secondary-foreground">
             <span className="font-medium">{profile.name}</span> · {profile.phone}
@@ -269,15 +295,15 @@ export function GroupBuyWidget({ product }: Props) {
         <button
           type="button"
           disabled={
-            reserved || status === 'loading' || !ready || checking
+            !canReserve || status === 'loading' || !ready || checking
           }
           onClick={handleReserve}
           className={cn(
             'mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold',
-            reserved
+            reserved || isReservationFull
               ? 'cursor-not-allowed bg-muted text-muted-foreground opacity-80'
               : 'bg-primary text-primary-foreground',
-            (status === 'loading' || !ready || checking) && !reserved && 'opacity-70',
+            (status === 'loading' || !ready || checking) && canReserve && 'opacity-70',
           )}
         >
           {status === 'loading' || checking ? (
@@ -287,6 +313,8 @@ export function GroupBuyWidget({ product }: Props) {
             </>
           ) : reserved ? (
             '예약 완료'
+          ) : isReservationFull ? (
+            '예약 마감'
           ) : profile ? (
             '사전 예약하기'
           ) : (

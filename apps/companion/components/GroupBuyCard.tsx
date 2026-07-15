@@ -14,19 +14,20 @@ type Props = {
 export function GroupBuyCard({ product, compact }: Props) {
   const isKakaoChannel = product.actionType === 'kakao_channel';
   const isReservation = product.actionType === 'reservation';
-  const hideProgress = isKakaoChannel || isReservation;
   const isPreparing = product.groupBuyStatus === 'preparing';
   const charge = perPersonCharge(product.discountedPrice, product.targetCount);
-  const isComplete =
-    !hideProgress &&
+  const isFull =
     !isPreparing &&
     (product.groupBuyStatus === 'success' ||
-      product.currentCount >= product.targetCount);
+      (product.targetCount > 0 && product.currentCount >= product.targetCount));
+  const isPaymentComplete = !isKakaoChannel && !isReservation && isFull;
+  const isReservationFull = isReservation && isFull;
   const imageUrl = resolveProductImageUrl(product.imageUrl);
   const progress =
     product.targetCount > 0
       ? Math.min(100, Math.round((product.currentCount / product.targetCount) * 100))
       : 0;
+  const showProgress = !isKakaoChannel && !isPreparing;
 
   return (
     <Link
@@ -61,16 +62,21 @@ export function GroupBuyCard({ product, compact }: Props) {
               준비중
             </span>
           )}
-          {isComplete && (
+          {isPaymentComplete && (
             <span className="text-micro font-semibold text-muted-foreground">
               모집 완료
+            </span>
+          )}
+          {isReservationFull && (
+            <span className="text-micro font-semibold text-muted-foreground">
+              예약 마감
             </span>
           )}
         </div>
         <p className="mt-1.5 line-clamp-2 text-sm font-semibold text-foreground">
           {product.name}
         </p>
-        {hideProgress ? (
+        {isKakaoChannel || isReservation ? (
           <p className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-xs">
             {product.regularPrice > 0 && (
               <span className="text-muted-foreground line-through">
@@ -89,11 +95,7 @@ export function GroupBuyCard({ product, compact }: Props) {
             {formatPrice(charge)}원 / 1인 청구 · 총 {formatPrice(product.discountedPrice)}원
           </p>
         )}
-        {hideProgress || isPreparing ? (
-          <div className="mt-2.5 flex items-center justify-end">
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-          </div>
-        ) : (
+        {showProgress ? (
           <div className="mt-2.5 flex items-center gap-2">
             <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
               <div
@@ -105,6 +107,10 @@ export function GroupBuyCard({ product, compact }: Props) {
               <Users className="size-3.5" />
               {product.currentCount} / {product.targetCount}명
             </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="mt-2.5 flex items-center justify-end">
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </div>
         )}
