@@ -6,6 +6,7 @@ import {
 } from '@/lib/airtable/participants';
 import {
   incrementProductCount as incrementAirtableProductCount,
+  decrementProductCount as decrementAirtableProductCount,
 } from '@/lib/airtable/products';
 import {
   getOrderByMerchantUid as getAirtableOrderByMerchantUid,
@@ -109,5 +110,11 @@ export async function incrementProductCount(productId: string): Promise<void> {
   if (getAirtableConfig()) {
     await incrementAirtableProductCount(productId);
     return;
+  }
+}
+
+export async function decrementProductCount(productId: string): Promise<void> {
+  if (getAirtableConfig()) {
+    await decrementAirtableProductCount(productId);
   }
 }

@@ -2,11 +2,16 @@ import {
   createRecord,
   escapeAirtableFormula,
   listRecords,
+  updateRecord,
 } from './client';
 import { requireAirtableConfig } from './config';
 import { normalizePhone } from '@/lib/user-profile';
 
-export type ProductReservationStatus = 'reserved' | 'notified' | 'completed';
+export type ProductReservationStatus =
+  | 'reserved'
+  | 'notified'
+  | 'completed'
+  | 'cancelled';
 
 export type AirtableProductReservationFields = {
   'Product ID'?: string;
@@ -31,7 +36,11 @@ function parseStatus(value: unknown): ProductReservationStatus {
   const raw = Array.isArray(value) ? value[0] : value;
   if (typeof raw !== 'string') return 'reserved';
   const normalized = raw.trim().toLowerCase();
-  if (normalized === 'notified' || normalized === 'completed') {
+  if (
+    normalized === 'notified' ||
+    normalized === 'completed' ||
+    normalized === 'cancelled'
+  ) {
     return normalized;
   }
   return 'reserved';
@@ -56,13 +65,17 @@ function mapReservation(record: {
   };
 }
 
-/** 동일 상품·유저의 기존 예약 (status 무관 — 재예약 방지) */
+function isActiveStatus(status: ProductReservationStatus): boolean {
+  return status !== 'cancelled';
+}
+
+/** 동일 상품·유저의 유효 예약 (cancelled 제외) */
 export async function findProductReservation(
   productId: string,
   userId: string,
 ): Promise<ProductReservationRecord | null> {
   const config = requireAirtableConfig();
-  const formula = `AND({Product ID}="${escapeAirtableFormula(productId)}",{User ID}="${escapeAirtableFormula(userId)}")`;
+  const formula = `AND({Product ID}="${escapeAirtableFormula(productId)}",{User ID}="${escapeAirtableFormula(userId)}",NOT({Status}="cancelled"))`;
   const records = await listRecords<AirtableProductReservationFields>(
     config.productReservationsTable,
     { filterByFormula: formula, maxRecords: 1 },
@@ -71,17 +84,19 @@ export async function findProductReservation(
   return mapReservation(records[0]);
 }
 
+/** 내 공동구매용 — cancelled 제외 */
 export async function listProductReservationsByUserId(
   userId: string,
 ): Promise<ProductReservationRecord[]> {
   const config = requireAirtableConfig();
-  const formula = `{User ID}="${escapeAirtableFormula(userId)}"`;
+  const formula = `AND({User ID}="${escapeAirtableFormula(userId)}",NOT({Status}="cancelled"))`;
   const records = await listRecords<AirtableProductReservationFields>(
     config.productReservationsTable,
     { filterByFormula: formula },
   );
   return records
     .map(mapReservation)
+    .filter((row) => isActiveStatus(row.status))
     .sort(
       (a, b) =>
         new Date(b.reserved_at).getTime() - new Date(a.reserved_at).getTime(),
@@ -109,4 +124,17 @@ export async function createProductReservation(input: {
     { typecast: true },
   );
   return mapReservation(created);
+}
+
+export async function cancelProductReservation(
+  reservationId: string,
+): Promise<ProductReservationRecord> {
+  const config = requireAirtableConfig();
+  const updated = await updateRecord<AirtableProductReservationFields>(
+    config.productReservationsTable,
+    reservationId,
+    { Status: 'cancelled' },
+    { typecast: true },
+  );
+  return mapReservation(updated);
 }

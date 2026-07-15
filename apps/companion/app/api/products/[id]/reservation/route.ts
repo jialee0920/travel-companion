@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth/session';
 import {
+  cancelProductReservation,
   findUserProductReservation,
   ProductReservationError,
   reserveProduct,
@@ -65,6 +66,38 @@ export async function POST(_request: Request, { params }: Props) {
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : '사전 예약 실패' },
+      { status: 500 },
+    );
+  }
+}
+
+/** 사전 예약 취소 */
+export async function DELETE(_request: Request, { params }: Props) {
+  const session = await getSessionUser();
+  if (!session) {
+    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+    const result = await cancelProductReservation({
+      productId: id,
+      userId: session.id,
+    });
+
+    return NextResponse.json({
+      reservation: result.reservation,
+      currentCount: result.currentCount,
+      targetCount: result.targetCount,
+      message: '예약을 취소했어요.',
+    });
+  } catch (error) {
+    console.error(error);
+    if (error instanceof ProductReservationError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '예약 취소 실패' },
       { status: 500 },
     );
   }

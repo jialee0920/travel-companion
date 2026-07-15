@@ -41,8 +41,8 @@ export function GroupBuyWidget({ product }: Props) {
   const isReservationFull =
     isReservation &&
     !isPreparing &&
-    (product.groupBuyStatus === 'success' ||
-      (product.targetCount > 0 && displayCount >= product.targetCount));
+    product.targetCount > 0 &&
+    displayCount >= product.targetCount;
   const charge = perPersonCharge(product.discountedPrice, product.targetCount);
 
   useEffect(() => {
@@ -174,6 +174,33 @@ export function GroupBuyWidget({ product }: Props) {
     }
   }
 
+  async function handleCancelReservation() {
+    if (!ready || isPreparing || !alreadyReserved || !profile) return;
+
+    setStatus('loading');
+    setMessage('');
+
+    try {
+      const res = await fetch(`/api/products/${encodeURIComponent(product.id)}/reservation`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? '예약 취소 실패');
+
+      setAlreadyReserved(false);
+      setStatus('idle');
+      setMessage(data.message || '예약을 취소했어요.');
+      if (typeof data.currentCount === 'number') {
+        setDisplayCount(data.currentCount);
+      } else {
+        setDisplayCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (err) {
+      setStatus('error');
+      setMessage(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    }
+  }
+
   if (isPreparing) {
     return (
       <div className="rounded-2xl border border-border bg-card p-4">
@@ -245,9 +272,10 @@ export function GroupBuyWidget({ product }: Props) {
   }
 
   if (isReservation) {
-    const reserved = alreadyReserved || status === 'paid';
+    const reserved = alreadyReserved;
     const checking = Boolean(profile?.id) && !reservationChecked;
     const canReserve = !reserved && !isReservationFull;
+    const busy = status === 'loading' || !ready || checking;
 
     return (
       <div className="rounded-2xl border border-border bg-card p-4">
@@ -292,43 +320,59 @@ export function GroupBuyWidget({ product }: Props) {
           </p>
         )}
 
-        <button
-          type="button"
-          disabled={
-            !canReserve || status === 'loading' || !ready || checking
-          }
-          onClick={handleReserve}
-          className={cn(
-            'mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold',
-            reserved || isReservationFull
-              ? 'cursor-not-allowed bg-muted text-muted-foreground opacity-80'
-              : 'bg-primary text-primary-foreground',
-            (status === 'loading' || !ready || checking) && canReserve && 'opacity-70',
-          )}
-        >
-          {status === 'loading' || checking ? (
-            <>
-              <Loader2 className="size-5 animate-spin" />
-              {checking ? '확인 중…' : '예약 중…'}
-            </>
-          ) : reserved ? (
-            '예약 완료'
-          ) : isReservationFull ? (
-            '예약 마감'
-          ) : profile ? (
-            '사전 예약하기'
-          ) : (
-            '로그인하고 사전 예약하기'
-          )}
-        </button>
+        {reserved ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleCancelReservation}
+            className={cn(
+              'mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card text-base font-semibold text-foreground',
+              busy && 'opacity-70',
+            )}
+          >
+            {status === 'loading' ? (
+              <>
+                <Loader2 className="size-5 animate-spin" /> 취소 중…
+              </>
+            ) : (
+              '예약 취소하기'
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={!canReserve || busy}
+            onClick={handleReserve}
+            className={cn(
+              'mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold',
+              isReservationFull
+                ? 'cursor-not-allowed bg-muted text-muted-foreground opacity-80'
+                : 'bg-primary text-primary-foreground',
+              busy && canReserve && 'opacity-70',
+            )}
+          >
+            {status === 'loading' || checking ? (
+              <>
+                <Loader2 className="size-5 animate-spin" />
+                {checking ? '확인 중…' : '예약 중…'}
+              </>
+            ) : isReservationFull ? (
+              '예약 마감'
+            ) : profile ? (
+              '사전 예약하기'
+            ) : (
+              '로그인하고 사전 예약하기'
+            )}
+          </button>
+        )}
 
         {message && (
           <p
             className={cn(
               'mt-3 rounded-xl px-3 py-2 text-sm',
-              status === 'paid' || reserved
-                ? 'bg-success-muted text-success'
-                : 'bg-destructive-muted text-destructive',
+              status === 'error'
+                ? 'bg-destructive-muted text-destructive'
+                : 'bg-success-muted text-success',
             )}
           >
             {message}

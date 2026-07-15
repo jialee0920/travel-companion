@@ -152,3 +152,21 @@ export async function incrementProductCount(productId: string): Promise<void> {
     'Group Buy Status': status,
   });
 }
+
+export async function decrementProductCount(productId: string): Promise<void> {
+  const found = await findProductRecordByProductId(productId);
+  if (!found) return;
+
+  const nextCount = Math.max(0, found.product.currentCount - 1);
+  const status: GroupBuyStatus =
+    found.product.groupBuyStatus === 'success' &&
+    (found.product.targetCount <= 0 || nextCount < found.product.targetCount)
+      ? 'open'
+      : found.product.groupBuyStatus;
+
+  const config = requireAirtableConfig();
+  await updateRecord<AirtableProductFields>(config.productsTable, found.id, {
+    'Current Count': nextCount,
+    'Group Buy Status': status,
+  });
+}
