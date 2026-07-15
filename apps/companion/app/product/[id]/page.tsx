@@ -4,17 +4,13 @@ import { notFound } from 'next/navigation';
 import { ChevronLeft, Store } from 'lucide-react';
 import { BottomChrome } from '@/components/BottomChrome';
 import { CommentSection } from '@/components/CommentSection';
-import {
-  GroupBuyWidget,
-  PRODUCT_STICKY_CTA_PADDING,
-} from '@/components/GroupBuyWidget';
+import { GroupBuyWidget } from '@/components/GroupBuyWidget';
 import { LinkifiedText } from '@/components/LinkifiedText';
 import { bottomChromePaddingClass } from '@/lib/bottom-chrome';
 import { listComments } from '@/lib/db/comments';
 import { listParticipants } from '@/lib/db/orders';
 import { getProductById } from '@/lib/db/products';
 import { resolveProductImageUrl } from '@/lib/products/format';
-import { cn } from '@/lib/utils';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -32,14 +28,50 @@ export default async function ProductPage({ params }: Props) {
   const imageUrl = resolveProductImageUrl(product.imageUrl);
   const detailImageUrls = product.detailImageUrls;
   const isKakaoChannel = product.actionType === 'kakao_channel';
-  const useStickyCta = !isKakaoChannel;
+
+  const detailAndParticipants = (
+    <>
+      {detailImageUrls.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="px-5 text-sm font-bold">상세정보</h2>
+          <div className="mt-3 w-full bg-white">
+            {detailImageUrls.map((url, index) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={`${url}-${index}`}
+                src={url}
+                alt={`${product.name} 상세 ${index + 1}`}
+                className="h-auto w-full object-contain"
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {product.actionType === 'payment' && participants.length > 0 ? (
+        <section className="mt-6 px-5">
+          <h2 className="text-sm font-bold">
+            참여자 <span className="text-primary">{participants.length}</span>명
+          </h2>
+          <ul className="mt-3 flex flex-col gap-2">
+            {participants.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm"
+              >
+                <span className="font-medium">{p.display_name}</span>
+                <span className="font-mono text-xs font-semibold text-primary">{p.order_code}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </>
+  );
 
   return (
     <main
-      className={cn(
-        'mx-auto min-h-screen max-w-md bg-background',
-        useStickyCta ? PRODUCT_STICKY_CTA_PADDING : bottomChromePaddingClass(true),
-      )}
+      className={`mx-auto min-h-screen max-w-md bg-background ${bottomChromePaddingClass(true)}`}
     >
       {isKakaoChannel ? (
         <div className="relative w-full bg-white">
@@ -95,57 +127,16 @@ export default async function ProductPage({ params }: Props) {
         />
       </div>
 
-      <div className="px-5">
-        <GroupBuyWidget product={product} />
-      </div>
+      <GroupBuyWidget product={product}>{detailAndParticipants}</GroupBuyWidget>
 
-      {detailImageUrls.length > 0 ? (
-        <section className="mt-8">
-          <h2 className="px-5 text-sm font-bold">상세정보</h2>
-          <div className="mt-3 w-full bg-white">
-            {detailImageUrls.map((url, index) => (
-              // 세로로 긴 상세 이미지: 원본 비율 유지, 가로 100%
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={`${url}-${index}`}
-                src={url}
-                alt={`${product.name} 상세 ${index + 1}`}
-                className="h-auto w-full object-contain"
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <CommentSection
+        targetType="product"
+        targetId={product.id}
+        initialComments={comments}
+        loginReturnUrl={`/product/${product.id}`}
+      />
 
-      {product.actionType === 'payment' && participants.length > 0 && (
-        <section className="mt-6 px-5">
-          <h2 className="text-sm font-bold">
-            참여자 <span className="text-primary">{participants.length}</span>명
-          </h2>
-          <ul className="mt-3 flex flex-col gap-2">
-            {participants.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm"
-              >
-                <span className="font-medium">{p.display_name}</span>
-                <span className="font-mono text-xs font-semibold text-primary">{p.order_code}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <div className={cn(useStickyCta ? 'pb-4' : undefined)}>
-        <CommentSection
-          targetType="product"
-          targetId={product.id}
-          initialComments={comments}
-          loginReturnUrl={`/product/${product.id}`}
-        />
-      </div>
-
-      {isKakaoChannel ? <BottomChrome hideNav /> : null}
+      <BottomChrome hideNav />
     </main>
   );
 }
