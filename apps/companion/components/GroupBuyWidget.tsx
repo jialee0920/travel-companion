@@ -213,9 +213,7 @@ export function GroupBuyWidget({ product }: Props) {
             <span className="line-through">{formatPrice(product.regularPrice)}원</span>
           </div>
           <div className="flex justify-between font-semibold">
-            <span>
-              {isKakaoChannel || isReservation ? '얼리버드 할인가' : '공동구매가'}
-            </span>
+            <span>{isKakaoChannel ? '얼리버드 할인가' : '공동구매가'}</span>
             <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
           </div>
         </div>
@@ -276,12 +274,13 @@ export function GroupBuyWidget({ product }: Props) {
     const checking = Boolean(profile?.id) && !reservationChecked;
     const canReserve = !reserved && !isReservationFull;
     const busy = status === 'loading' || !ready || checking;
+    const reserveCharge = perPersonCharge(product.discountedPrice, product.targetCount);
 
     return (
       <div className="rounded-2xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between">
           <span className="rounded-lg bg-primary-muted px-2 py-1 text-sm font-bold text-primary">
-            사전 예약
+            {formatDiscountPercent(product.discountRate)}% 할인
           </span>
           <span className="flex items-center gap-1 text-sm font-semibold">
             <Users className="size-4 text-primary" />
@@ -295,8 +294,12 @@ export function GroupBuyWidget({ product }: Props) {
             <span className="line-through">{formatPrice(product.regularPrice)}원</span>
           </div>
           <div className="flex justify-between font-semibold">
-            <span>예약가</span>
+            <span>공동구매가</span>
             <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
+          </div>
+          <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
+            <span>1인 청구 금액</span>
+            <span>{formatPrice(reserveCharge)}원</span>
           </div>
         </div>
 
