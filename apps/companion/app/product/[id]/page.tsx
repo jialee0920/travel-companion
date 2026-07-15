@@ -4,13 +4,17 @@ import { notFound } from 'next/navigation';
 import { ChevronLeft, Store } from 'lucide-react';
 import { BottomChrome } from '@/components/BottomChrome';
 import { CommentSection } from '@/components/CommentSection';
-import { GroupBuyWidget } from '@/components/GroupBuyWidget';
+import {
+  GroupBuyWidget,
+  PRODUCT_STICKY_CTA_PADDING,
+} from '@/components/GroupBuyWidget';
 import { LinkifiedText } from '@/components/LinkifiedText';
 import { bottomChromePaddingClass } from '@/lib/bottom-chrome';
 import { listComments } from '@/lib/db/comments';
 import { listParticipants } from '@/lib/db/orders';
 import { getProductById } from '@/lib/db/products';
 import { resolveProductImageUrl } from '@/lib/products/format';
+import { cn } from '@/lib/utils';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -28,9 +32,15 @@ export default async function ProductPage({ params }: Props) {
   const imageUrl = resolveProductImageUrl(product.imageUrl);
   const detailImageUrls = product.detailImageUrls;
   const isKakaoChannel = product.actionType === 'kakao_channel';
+  const useStickyCta = !isKakaoChannel;
 
   return (
-    <main className={`mx-auto min-h-screen max-w-md bg-background ${bottomChromePaddingClass(true)}`}>
+    <main
+      className={cn(
+        'mx-auto min-h-screen max-w-md bg-background',
+        useStickyCta ? PRODUCT_STICKY_CTA_PADDING : bottomChromePaddingClass(true),
+      )}
+    >
       {isKakaoChannel ? (
         <div className="relative w-full bg-white">
           <Image
@@ -70,21 +80,6 @@ export default async function ProductPage({ params }: Props) {
         </div>
       )}
 
-      {detailImageUrls.length > 0 ? (
-        <div className="w-full bg-white">
-          {detailImageUrls.map((url, index) => (
-            // 세로로 긴 상세 이미지: 원본 비율 유지, 가로 100%
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={`${url}-${index}`}
-              src={url}
-              alt={`${product.name} 상세 ${index + 1}`}
-              className="h-auto w-full object-contain"
-            />
-          ))}
-        </div>
-      ) : null}
-
       <div className="px-5 py-5">
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Store className="size-4" />
@@ -103,6 +98,24 @@ export default async function ProductPage({ params }: Props) {
       <div className="px-5">
         <GroupBuyWidget product={product} />
       </div>
+
+      {detailImageUrls.length > 0 ? (
+        <section className="mt-8">
+          <h2 className="px-5 text-sm font-bold">상세정보</h2>
+          <div className="mt-3 w-full bg-white">
+            {detailImageUrls.map((url, index) => (
+              // 세로로 긴 상세 이미지: 원본 비율 유지, 가로 100%
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={`${url}-${index}`}
+                src={url}
+                alt={`${product.name} 상세 ${index + 1}`}
+                className="h-auto w-full object-contain"
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {product.actionType === 'payment' && participants.length > 0 && (
         <section className="mt-6 px-5">
@@ -123,14 +136,16 @@ export default async function ProductPage({ params }: Props) {
         </section>
       )}
 
-      <CommentSection
-        targetType="product"
-        targetId={product.id}
-        initialComments={comments}
-        loginReturnUrl={`/product/${product.id}`}
-      />
+      <div className={cn(useStickyCta ? 'pb-4' : undefined)}>
+        <CommentSection
+          targetType="product"
+          targetId={product.id}
+          initialComments={comments}
+          loginReturnUrl={`/product/${product.id}`}
+        />
+      </div>
 
-      <BottomChrome hideNav />
+      {isKakaoChannel ? <BottomChrome hideNav /> : null}
     </main>
   );
 }
