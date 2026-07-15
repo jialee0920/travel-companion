@@ -23,9 +23,7 @@ const PAYMENT_NOT_CONFIGURED_MSG =
 
 const RESERVE_SUCCESS_MSG = '예약 완료! 결제 준비되면 알림으로 알려드릴게요!';
 
-/** 상품 상세는 고정 헤더가 없어 safe-area만 사용 (헤더 도입 시 이 값 조정) */
-const STICKY_TOP_CLASS = 'top-[env(safe-area-inset-top,0px)]';
-
+/** 상품 상세는 고정 헤더 없음 → top-0. 고정 시에만 safe-area padding 적용 */
 function StickyActionPanel({ children }: { children: React.ReactNode }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
@@ -47,11 +45,10 @@ function StickyActionPanel({ children }: { children: React.ReactNode }) {
       <div ref={sentinelRef} className="h-px w-full" aria-hidden />
       <div
         className={cn(
-          'sticky z-20 px-5 py-3 transition-[box-shadow,background-color,border-color]',
-          STICKY_TOP_CLASS,
+          'sticky top-0 z-40 bg-background px-5 transition-[box-shadow,border-color,padding]',
           stuck
-            ? 'border-b border-border/70 bg-background shadow-[0_6px_18px_rgba(0,0,0,0.08)]'
-            : 'border-b border-transparent bg-transparent shadow-none',
+            ? 'border-b border-border/70 pb-3 pt-[env(safe-area-inset-top,0px)] shadow-[0_6px_18px_rgba(0,0,0,0.08)]'
+            : 'border-b border-transparent pb-0 pt-0 shadow-none',
         )}
       >
         {children}
@@ -486,13 +483,14 @@ export function GroupBuyWidget({ product, children }: Props) {
 
   return (
     <div>
-      {/* sticky 부모는 children(상세이미지)까지 포함해야 고정이 유지됨 */}
-      <StickyActionPanel>
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      {/* sticky 포함 블록은 children(상세이미지)까지 길게 유지. overflow-hidden 금지 */}
+      <div className="px-5">
+        <div className="rounded-t-2xl border border-b-0 border-border bg-card">
           {summarySection}
-          <div className="border-t border-border" aria-hidden />
-          {actionSection}
         </div>
+      </div>
+      <StickyActionPanel>
+        <div className="rounded-b-2xl border border-border bg-card">{actionSection}</div>
       </StickyActionPanel>
       {children}
     </div>
