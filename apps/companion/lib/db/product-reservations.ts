@@ -2,12 +2,18 @@ import { getAirtableConfig } from '@/lib/airtable/config';
 import {
   createProductReservation as createAirtableReservation,
   findProductReservation as findAirtableReservation,
+  listProductReservationsByUserId as listAirtableReservationsByUserId,
   type ProductReservationRecord,
+  type ProductReservationStatus,
 } from '@/lib/airtable/product-reservations';
 import { getProductById } from '@/lib/db/products';
 import { normalizePhone } from '@/lib/user-profile';
 
-export type { ProductReservationRecord };
+export type { ProductReservationRecord, ProductReservationStatus };
+
+export type MyProductReservationItem = ProductReservationRecord & {
+  product_name: string;
+};
 
 export class ProductReservationError extends Error {
   status: number;
@@ -35,6 +41,38 @@ export async function findUserProductReservation(
     return findAirtableReservation(productId, userId);
   }
   return memoryReservations.get(memoryKey(productId, userId)) ?? null;
+}
+
+async function withProductNames(
+  rows: ProductReservationRecord[],
+): Promise<MyProductReservationItem[]> {
+  const uniqueIds = [...new Set(rows.map((r) => r.product_id).filter(Boolean))];
+  const products = await Promise.all(uniqueIds.map((id) => getProductById(id)));
+  const nameById = new Map(
+    uniqueIds.map((id, i) => [id, products[i]?.name?.trim() || '상품']),
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    product_name: nameById.get(row.product_id) || '상품',
+  }));
+}
+
+export async function listReservationsByUserId(
+  userId: string,
+): Promise<MyProductReservationItem[]> {
+  let rows: ProductReservationRecord[];
+  if (getAirtableConfig()) {
+    rows = await listAirtableReservationsByUserId(userId);
+  } else {
+    rows = [...memoryReservations.values()]
+      .filter((row) => row.user_id === userId)
+      .sort(
+        (a, b) =>
+          new Date(b.reserved_at).getTime() - new Date(a.reserved_at).getTime(),
+      );
+  }
+  return withProductNames(rows);
 }
 
 export async function reserveProduct(input: {

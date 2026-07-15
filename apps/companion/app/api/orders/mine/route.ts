@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { listOrdersByProfileId, listOrdersByPhone } from '@/lib/db/orders';
+import { listReservationsByUserId } from '@/lib/db/product-reservations';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -8,12 +9,15 @@ export async function GET(request: Request) {
 
   try {
     if (profileId) {
-      const orders = await listOrdersByProfileId(profileId);
-      return NextResponse.json({ orders });
+      const [orders, reservations] = await Promise.all([
+        listOrdersByProfileId(profileId),
+        listReservationsByUserId(profileId),
+      ]);
+      return NextResponse.json({ orders, reservations });
     }
     if (phone?.trim()) {
       const orders = await listOrdersByPhone(phone.trim());
-      return NextResponse.json({ orders });
+      return NextResponse.json({ orders, reservations: [] });
     }
     return NextResponse.json({ error: 'profileId 또는 phone 필요' }, { status: 400 });
   } catch (error) {

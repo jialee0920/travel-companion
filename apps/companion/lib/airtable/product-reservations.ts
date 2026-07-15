@@ -71,6 +71,23 @@ export async function findProductReservation(
   return mapReservation(records[0]);
 }
 
+export async function listProductReservationsByUserId(
+  userId: string,
+): Promise<ProductReservationRecord[]> {
+  const config = requireAirtableConfig();
+  const formula = `{User ID}="${escapeAirtableFormula(userId)}"`;
+  const records = await listRecords<AirtableProductReservationFields>(
+    config.productReservationsTable,
+    { filterByFormula: formula },
+  );
+  return records
+    .map(mapReservation)
+    .sort(
+      (a, b) =>
+        new Date(b.reserved_at).getTime() - new Date(a.reserved_at).getTime(),
+    );
+}
+
 export async function createProductReservation(input: {
   productId: string;
   userId: string;
