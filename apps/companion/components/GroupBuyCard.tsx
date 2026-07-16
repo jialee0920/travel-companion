@@ -4,6 +4,11 @@ import { ChevronRight, Users } from 'lucide-react';
 import type { RegionProduct } from '@/lib/regions/types';
 import { formatPrice, perPersonCharge } from '@/lib/geo';
 import { formatDiscountPercent, resolveProductImageUrl } from '@/lib/products/format';
+import {
+  isKakaoChannelAction,
+  isPaymentLinkAction,
+  isReservationAction,
+} from '@/lib/products/action-type';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -12,15 +17,16 @@ type Props = {
 };
 
 export function GroupBuyCard({ product, compact }: Props) {
-  const isKakaoChannel = product.actionType === 'kakao_channel';
-  const isReservation = product.actionType === 'reservation';
+  const isKakaoChannel = isKakaoChannelAction(product.actionType);
+  const isPaymentLink = isPaymentLinkAction(product.actionType);
+  const isReservation = isReservationAction(product.actionType);
   const isPreparing = product.groupBuyStatus === 'preparing';
   const charge = perPersonCharge(product.discountedPrice, product.targetCount);
   const isFull =
     !isPreparing &&
     (product.groupBuyStatus === 'success' ||
       (product.targetCount > 0 && product.currentCount >= product.targetCount));
-  const isPaymentComplete = !isKakaoChannel && !isReservation && isFull;
+  const isPaymentComplete = !isKakaoChannel && !isPaymentLink && !isReservation && isFull;
   const isReservationFull = isReservation && isFull;
   const imageUrl = resolveProductImageUrl(product.imageUrl);
   const progress =

@@ -4,6 +4,11 @@ import { getProductById } from '@/lib/db/products';
 import { generateOrderCode, perPersonCharge } from '@/lib/geo';
 import { completeOrderAfterPayment } from '@/lib/payments/complete-order';
 import { getPaymentProvider } from '@/lib/payments/provider';
+import {
+  isKakaoChannelAction,
+  isPaymentLinkAction,
+  isReservationAction,
+} from '@/lib/products/action-type';
 import { resolveRegionForStorage } from '@/lib/region-filter';
 import { upsertUser } from '@/lib/airtable/users';
 
@@ -99,13 +104,19 @@ export async function PUT(request: Request) {
     if (!product) {
       return NextResponse.json({ error: '상품을 찾을 수 없습니다.' }, { status: 404 });
     }
-    if (product.actionType === 'kakao_channel') {
+    if (isKakaoChannelAction(product.actionType)) {
       return NextResponse.json(
         { error: '이 상품은 카카오채널에서 신청해 주세요.' },
         { status: 400 },
       );
     }
-    if (product.actionType === 'reservation') {
+    if (isPaymentLinkAction(product.actionType)) {
+      return NextResponse.json(
+        { error: '이 상품은 외부 결제 링크에서 결제해 주세요.' },
+        { status: 400 },
+      );
+    }
+    if (isReservationAction(product.actionType)) {
       return NextResponse.json(
         { error: '이 상품은 사전 예약으로만 신청할 수 있습니다.' },
         { status: 400 },

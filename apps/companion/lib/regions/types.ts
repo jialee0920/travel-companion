@@ -1,3 +1,5 @@
+import type { ProductActionType } from '@/lib/products/action-type';
+
 export type CompanionCategory = 'meal' | 'exercise' | 'travel';
 
 export type RegionSpot = {
@@ -27,8 +29,7 @@ export type RegionCompanion = {
 
 export type GroupBuyStatus = 'open' | 'success' | 'closed' | 'preparing';
 
-/** payment: PG 결제 / kakao_channel: 외부 카카오채널 신청 / reservation: 사전 예약 */
-export type ProductActionType = 'payment' | 'kakao_channel' | 'reservation';
+export type { ProductActionType } from '@/lib/products/action-type';
 
 export type RegionProduct = {
   id: string;

@@ -13,6 +13,7 @@ import { getProductById } from '@/lib/db/products';
 import { PAGE_GUTTER_CLASS } from '@/lib/layout/page-container';
 import { resolveProductImageUrl } from '@/lib/products/format';
 import { cn } from '@/lib/utils';
+import { isKakaoChannelAction, isPaymentAction } from '@/lib/products/action-type';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -29,7 +30,7 @@ export default async function ProductPage({ params }: Props) {
   ]);
   const imageUrl = resolveProductImageUrl(product.imageUrl);
   const detailImageUrls = product.detailImageUrls;
-  const isKakaoChannel = product.actionType === 'kakao_channel';
+  const isKakaoChannel = isKakaoChannelAction(product.actionType);
 
   const detailAndParticipants = (
     <>
@@ -50,7 +51,7 @@ export default async function ProductPage({ params }: Props) {
         </section>
       ) : null}
 
-      {product.actionType === 'payment' && participants.length > 0 ? (
+      {isPaymentAction(product.actionType) && participants.length > 0 ? (
         <section className={cn(PAGE_GUTTER_CLASS, 'mt-6')}>
           <h2 className="text-sm font-bold">
             참여자 <span className="text-primary">{participants.length}</span>명

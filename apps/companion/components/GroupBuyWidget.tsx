@@ -7,6 +7,14 @@ import { ArrowRight, Loader2, Users } from 'lucide-react';
 import type { RegionProduct } from '@/lib/regions/types';
 import { formatPrice, perPersonCharge } from '@/lib/geo';
 import { formatDiscountPercent } from '@/lib/products/format';
+import {
+  isKakaoChannelAction,
+  isPaymentLinkAction,
+  isReservationAction,
+  openProductExternalLink,
+  PAYMENT_LINK_BUTTON_LABEL,
+  PAYMENT_LINK_NO_LINK_MSG,
+} from '@/lib/products/action-type';
 import { openPaymentWindow } from '@/lib/payments/client-sdk';
 import type { ClientCheckoutConfig } from '@/lib/payments/types';
 import { PAGE_GUTTER_CLASS } from '@/lib/layout/page-container';
@@ -68,11 +76,15 @@ export function GroupBuyWidget({ product, children }: Props) {
   const [reservationChecked, setReservationChecked] = useState(false);
   const [displayCount, setDisplayCount] = useState(product.currentCount);
 
-  const isKakaoChannel = product.actionType === 'kakao_channel';
-  const isReservation = product.actionType === 'reservation';
+  const isKakaoChannel = isKakaoChannelAction(product.actionType);
+  const isPaymentLink = isPaymentLinkAction(product.actionType);
+  const isReservation = isReservationAction(product.actionType);
+  const externalPaymentUrl = product.externalLink;
+  const hasExternalPaymentUrl = Boolean(externalPaymentUrl);
   const isPreparing = product.groupBuyStatus === 'preparing';
   const isComplete =
     !isKakaoChannel &&
+    !isPaymentLink &&
     !isReservation &&
     !isPreparing &&
     (product.groupBuyStatus === 'success' || product.currentCount >= product.targetCount);
@@ -270,6 +282,77 @@ export function GroupBuyWidget({ product, children }: Props) {
             </Link>
           </div>
         )}
+        {children}
+      </div>
+    );
+  }
+
+  if (isPaymentLink) {
+    const paymentLinkDisabled = isPreparing || !hasExternalPaymentUrl;
+
+    return (
+      <div>
+        <div className={PAGE_GUTTER_CLASS}>
+          <div className="rounded-t-2xl border border-b-0 border-border bg-card px-4 pb-3 pt-4">
+            {isPreparing ? (
+              <span className="rounded-lg bg-secondary px-2 py-1 text-sm font-bold text-muted-foreground">
+                준비중
+              </span>
+            ) : (
+              <span className="rounded-lg bg-primary-muted px-2 py-1 text-sm font-bold text-primary">
+                {formatDiscountPercent(product.discountRate)}% 할인
+              </span>
+            )}
+            <div className="mt-4 space-y-1 text-sm">
+              <div className="flex justify-between text-muted-foreground">
+                <span>정가</span>
+                <span className="line-through">{formatPrice(product.regularPrice)}원</span>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <span>공동구매가</span>
+                <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
+              </div>
+            </div>
+            {isPreparing ? (
+              <p className="mt-3 rounded-xl bg-secondary px-3 py-3 text-center text-sm font-medium text-secondary-foreground">
+                곧 만나요! 준비중인 상품이에요
+              </p>
+            ) : (
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                외부 결제 페이지에서 결제를 진행해 주세요.
+              </p>
+            )}
+          </div>
+        </div>
+        <StickyActionPanel>
+          <div className="rounded-b-2xl border border-border bg-card px-4 pb-4 pt-3">
+            <div className="flex justify-between text-base font-bold">
+              <span>1인 청구 금액</span>
+              <span>{formatPrice(charge)}원</span>
+            </div>
+            {!hasExternalPaymentUrl && !isPreparing ? (
+              <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-center text-sm text-secondary-foreground">
+                {PAYMENT_LINK_NO_LINK_MSG}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              disabled={paymentLinkDisabled}
+              onClick={() => {
+                if (externalPaymentUrl) openProductExternalLink(externalPaymentUrl);
+              }}
+              className={cn(
+                'mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold',
+                paymentLinkDisabled
+                  ? 'cursor-not-allowed bg-muted text-muted-foreground opacity-70'
+                  : 'bg-primary text-primary-foreground',
+              )}
+            >
+              {PAYMENT_LINK_BUTTON_LABEL}
+              {!paymentLinkDisabled ? <ArrowRight className="size-5" /> : null}
+            </button>
+          </div>
+        </StickyActionPanel>
         {children}
       </div>
     );
