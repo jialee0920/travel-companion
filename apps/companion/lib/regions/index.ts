@@ -48,6 +48,13 @@ export function getProductById(productId: string, regionCode = DEFAULT_REGION_CO
 }
 
 export {
+  airtableLabelToRegionCode,
+  buildAirtableRegionField,
+  REGION_AIRTABLE_LABEL_BY_CODE,
+  regionCodeToAirtableLabel,
+  regionCodesToAirtableLabels,
+} from './airtable-regions';
+export {
   formatRegionsDisplay,
   normalizeUserRegions,
   parseUserRegions,

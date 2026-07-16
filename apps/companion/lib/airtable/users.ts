@@ -4,6 +4,7 @@ import {
   parseUserRegions,
   primaryRegion,
 } from '@/lib/regions';
+import { buildAirtableRegionField } from '@/lib/regions/airtable-regions';
 import {
   airtableAndFormula,
   airtableRegionFormula,
@@ -38,7 +39,7 @@ export type AirtableUserFields = {
   Name?: string;
   /** 카카오 닉네임 등 공개 표시용 */
   Nickname?: string;
-  Region?: string | string[];
+  Region?: string[];
   'Avatar URL'?: string;
   'Companion Seed ID'?: string;
   Bio?: string;
@@ -89,6 +90,37 @@ export function maskDisplayName(display: string): string {
   if (!trimmed) return '**';
   return `${trimmed.slice(0, 1)}**`;
 }
+
+function logAirtableUsersPayload(
+  action: 'createRecord' | 'updateRecord',
+  fields: Partial<AirtableUserFields>,
+  recordId?: string,
+): void {
+  console.log('[Airtable Users]', action, {
+    ...(recordId ? { recordId } : {}),
+    fields,
+    Region: fields.Region,
+  });
+}
+
+async function createUserRecord(
+  fields: Partial<AirtableUserFields>,
+): Promise<AirtableRecord<AirtableUserFields>> {
+  const config = requireAirtableConfig();
+  logAirtableUsersPayload('createRecord', fields);
+  return createRecord<AirtableUserFields>(config.usersTable, fields);
+}
+
+async function updateUserRecord(
+  recordId: string,
+  fields: Partial<AirtableUserFields>,
+): Promise<AirtableRecord<AirtableUserFields>> {
+  const config = requireAirtableConfig();
+  logAirtableUsersPayload('updateRecord', fields, recordId);
+  return updateRecord<AirtableUserFields>(config.usersTable, recordId, fields);
+}
+
+type AirtableRecord<T> = { id: string; fields: T };
 
 function parseNumberField(value: unknown): number | null {
   if (typeof value === 'number' && !Number.isNaN(value)) return value;
@@ -300,7 +332,6 @@ export async function upsertUser(input: {
   name: string;
   region: string;
 }): Promise<AirtableUser> {
-  const config = requireAirtableConfig();
   const phone = normalizePhone(input.phone);
   const name = input.name.trim();
   const region = resolveRegionForStorage(input.region);
@@ -308,18 +339,19 @@ export async function upsertUser(input: {
   const existing = await findUserByPhone(phone, region);
   if (existing) {
     if (existing.name === name) return existing;
-    const updated = await updateRecord<AirtableUserFields>(config.usersTable, existing.id, {
+    const updated = await updateUserRecord(existing.id, {
       Name: name,
     });
     return mapUser(updated);
   }
 
   const nickname = await allocateUniqueNickname(name);
-  const created = await createRecord<AirtableUserFields>(config.usersTable, {
+  const regionField = buildAirtableRegionField([region]);
+  const created = await createUserRecord({
     Phone: phone,
     Name: name,
     Nickname: nickname,
-    Region: [region],
+    ...(regionField ? { Region: regionField } : {}),
     'Auth Provider': 'phone',
   });
   return mapUser(created);
@@ -331,7 +363,6 @@ export async function upsertKakaoUser(input: {
   region: string;
   avatarUrl?: string | null;
 }): Promise<AirtableUser> {
-  const config = requireAirtableConfig();
   const kakaoId = input.kakaoId.trim();
   const desired = displayNickname(input.nickname) || `카카오${kakaoId}`;
   const region = resolveRegionForStorage(input.region);
@@ -355,14 +386,15 @@ export async function upsertKakaoUser(input: {
       });
     }
     if (Object.keys(fields).length === 0) return existing;
-    const updated = await updateRecord<AirtableUserFields>(config.usersTable, existing.id, fields);
+    const updated = await updateUserRecord(existing.id, fields);
     return mapUser(updated);
   }
 
   const nickname = await allocateUniqueNickname(desired);
-  const created = await createRecord<AirtableUserFields>(config.usersTable, {
+  const regionField = buildAirtableRegionField([region]);
+  const created = await createUserRecord({
     Nickname: nickname,
-    Region: [region],
+    ...(regionField ? { Region: regionField } : {}),
     'Kakao ID': kakaoId,
     'Auth Provider': 'kakao',
     'Avatar URL': input.avatarUrl ?? undefined,
@@ -384,7 +416,6 @@ export async function updateUserProfile(
     avatarUrl?: string | null;
   },
 ): Promise<AirtableUser> {
-  const config = requireAirtableConfig();
   const fields: Partial<AirtableUserFields> = {};
 
   if (input.bio !== undefined) {
@@ -404,7 +435,10 @@ export async function updateUserProfile(
     if (normalized.length === 0) {
       throw new Error('활동 지역을 하나 이상 선택해주세요.');
     }
-    fields.Region = normalized.map((code) => resolveRegionForStorage(code));
+    const regionField = buildAirtableRegionField(normalized);
+    if (regionField) {
+      fields.Region = regionField;
+    }
   }
   if (input.name !== undefined) {
     fields.Name = input.name.trim();
@@ -436,9 +470,7 @@ export async function updateUserProfile(
     fieldKeys: Object.keys(fields),
   });
 
-  await updateRecord<AirtableUserFields>(config.usersTable, userId, fields, {
-    typecast: true,
-  });
+  await updateUserRecord(userId, fields);
 
   // PATCH 응답은 부분 필드일 수 있어 전체 레코드를 다시 조회
   const refreshed = await getUserById(userId);
@@ -511,11 +543,11 @@ export async function getOrCreateCompanionUser(
   const companion = region.companions.find((c) => c.id === companionSeedId);
   if (!companion) throw new Error('동행자를 찾을 수 없습니다.');
 
-  const config = requireAirtableConfig();
-  const created = await createRecord<AirtableUserFields>(config.usersTable, {
+  const regionField = buildAirtableRegionField([regionCode]);
+  const created = await createUserRecord({
     Phone: `seed:${companionSeedId}`,
     Nickname: companion.name,
-    Region: [regionCode],
+    ...(regionField ? { Region: regionField } : {}),
     'Avatar URL': companion.avatar,
     'Companion Seed ID': companionSeedId,
   });

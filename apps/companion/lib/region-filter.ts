@@ -1,10 +1,11 @@
+import { regionCodeToAirtableLabel } from '@/lib/regions/airtable-regions';
 import { DEFAULT_REGION_CODE } from '@/lib/regions';
 
 /**
  * 다지역 확장 시 Airtable 조회·전화번호 중복 판별에 Region 조건을 켤 수 있는 스위치.
  *
  * ENABLE_REGION_FILTER=false (기본) → Region 조건 없이 조회
- * ENABLE_REGION_FILTER=true          → {Region}="mukho" 등 Region 필터 적용
+ * ENABLE_REGION_FILTER=true          → {Region}="묵호" 등 Region 필터 적용 (Airtable 라벨)
  *
  * 신규 레코드의 Region 필드 저장값은 필터 on/off와 무관하게 defaultRegionCode() 사용.
  */
@@ -31,7 +32,8 @@ export function airtableRegionFormula(
   escape: (value: string) => string,
 ): string | undefined {
   if (!isRegionFilterEnabled()) return undefined;
-  return `{Region}="${escape(regionCode)}"`;
+  const label = regionCodeToAirtableLabel(regionCode);
+  return `{Region}="${escape(label)}"`;
 }
 
 export function airtableAndFormula(...parts: Array<string | undefined>): string | undefined {

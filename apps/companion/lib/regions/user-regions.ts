@@ -1,12 +1,27 @@
+import { airtableLabelToRegionCode } from './airtable-regions';
 import { DEFAULT_REGION_CODE, getRegionDisplayName, isKnownRegionCode, REGION_OPTIONS } from './index';
 
-/** Airtable Region 필드(단일/복수) → 정규화된 지역 코드 배열 */
+function resolveStoredRegionValue(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const fromLabel = airtableLabelToRegionCode(trimmed);
+  if (fromLabel) return fromLabel;
+  if (isKnownRegionCode(trimmed)) return trimmed;
+  return null;
+}
+
+/** Airtable Region 필드(단일/복수, 라벨 또는 레거시 코드) → 정규화된 지역 코드 배열 */
 export function parseUserRegions(value: unknown): string[] {
   if (Array.isArray(value)) {
-    return normalizeUserRegions(value.filter((v): v is string => typeof v === 'string'));
+    const codes = value
+      .filter((v): v is string => typeof v === 'string')
+      .map(resolveStoredRegionValue)
+      .filter((code): code is string => code != null);
+    return normalizeUserRegions(codes);
   }
   if (typeof value === 'string' && value.trim()) {
-    return normalizeUserRegions([value.trim()]);
+    const code = resolveStoredRegionValue(value);
+    return code ? normalizeUserRegions([code]) : [];
   }
   return [];
 }
