@@ -68,22 +68,13 @@ export function openProductExternalLink(url: string): void {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-/** kakao_channel 등 — 같은 탭에서 이동 (앱 내부는 client router, 외부는 location.assign) */
-export function navigateProductExternalLinkSameWindow(
-  url: string,
-  navigate: (href: string) => void,
-): void {
-  if (typeof window === 'undefined') return;
-
+/** kakao_channel CTA — same-tab `<a href>` 용 (target=_blank 사용 안 함) */
+export function resolveSameTabHref(url: string): string {
+  const trimmed = url.trim();
+  if (trimmed.startsWith('/')) return trimmed;
   try {
-    const target = new URL(url, window.location.href);
-    const href = `${target.pathname}${target.search}${target.hash}` || '/';
-    if (target.origin === window.location.origin) {
-      navigate(href);
-      return;
-    }
-    window.location.assign(target.toString());
+    return new URL(trimmed).toString();
   } catch {
-    window.location.assign(url);
+    return trimmed;
   }
 }

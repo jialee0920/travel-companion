@@ -13,8 +13,8 @@ import {
   isReservationAction,
   KAKAO_CHANNEL_BUTTON_LABEL,
   KAKAO_CHANNEL_NO_LINK_MSG,
-  navigateProductExternalLinkSameWindow,
   openProductExternalLink,
+  resolveSameTabHref,
   PAYMENT_LINK_BUTTON_LABEL,
   PAYMENT_LINK_NO_LINK_MSG,
 } from '@/lib/products/action-type';
@@ -229,6 +229,13 @@ export function GroupBuyWidget({ product, children }: Props) {
 
   if (isKakaoChannel) {
     const kakaoLinkDisabled = isPreparing || !hasExternalLink;
+    const kakaoHref = externalLinkUrl ? resolveSameTabHref(externalLinkUrl) : '';
+    const kakaoCtaClass = cn(
+      'mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold',
+      kakaoLinkDisabled
+        ? 'pointer-events-none cursor-not-allowed bg-muted text-muted-foreground opacity-70'
+        : 'bg-primary text-primary-foreground',
+    );
 
     return (
       <div className={PAGE_GUTTER_CLASS}>
@@ -266,24 +273,14 @@ export function GroupBuyWidget({ product, children }: Props) {
               {KAKAO_CHANNEL_NO_LINK_MSG}
             </p>
           ) : null}
-          <button
-            type="button"
-            disabled={kakaoLinkDisabled}
-            onClick={() => {
-              if (externalLinkUrl) {
-                navigateProductExternalLinkSameWindow(externalLinkUrl, router.push);
-              }
-            }}
-            className={cn(
-              'mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold',
-              kakaoLinkDisabled
-                ? 'cursor-not-allowed bg-muted text-muted-foreground opacity-70'
-                : 'bg-primary text-primary-foreground',
-            )}
-          >
-            {KAKAO_CHANNEL_BUTTON_LABEL}
-            {!kakaoLinkDisabled ? <ArrowRight className="size-5" /> : null}
-          </button>
+          {kakaoLinkDisabled ? (
+            <span className={kakaoCtaClass}>{KAKAO_CHANNEL_BUTTON_LABEL}</span>
+          ) : (
+            <a href={kakaoHref} className={kakaoCtaClass}>
+              {KAKAO_CHANNEL_BUTTON_LABEL}
+              <ArrowRight className="size-5" />
+            </a>
+          )}
         </div>
         {children}
       </div>
