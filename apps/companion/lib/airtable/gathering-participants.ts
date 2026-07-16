@@ -13,6 +13,8 @@ export type GatheringParticipantStatus = 'applied' | 'cancelled';
 export type AirtableGatheringParticipantFields = {
   'Gathering ID'?: string;
   'User ID'?: string;
+  'Gathering Link'?: string[];
+  'User Link'?: string[];
   'Author ID'?: string;
   Status?: GatheringParticipantStatus;
   'Chat Room ID'?: string;
@@ -59,6 +61,35 @@ function mapParticipant(record: {
       record.createdTime ||
       new Date().toISOString(),
   };
+}
+
+/** Airtable Link 필드 — 순수 record ID 문자열 배열만 (빈 값이면 undefined) */
+function buildAirtableLinkField(recordId: string | undefined | null): string[] | undefined {
+  const trimmed = recordId?.trim();
+  if (!trimmed) return undefined;
+  return [trimmed];
+}
+
+function buildGatheringParticipantCreateFields(input: {
+  gatheringId: string;
+  userId: string;
+  authorId: string;
+  appliedAt: string;
+}): AirtableGatheringParticipantFields {
+  const fields: AirtableGatheringParticipantFields = {
+    'Gathering ID': input.gatheringId,
+    'User ID': input.userId,
+    'Author ID': input.authorId,
+    Status: 'applied',
+    'Applied At': input.appliedAt,
+  };
+
+  const gatheringLink = buildAirtableLinkField(input.gatheringId);
+  const userLink = buildAirtableLinkField(input.userId);
+  if (gatheringLink) fields['Gathering Link'] = gatheringLink;
+  if (userLink) fields['User Link'] = userLink;
+
+  return fields;
 }
 
 export async function findAppliedParticipant(
@@ -135,15 +166,15 @@ export async function createGatheringParticipant(input: {
 }): Promise<GatheringParticipantRecord> {
   const config = requireAirtableConfig();
   const appliedAt = new Date().toISOString();
+  const fields = buildGatheringParticipantCreateFields({
+    gatheringId: input.gatheringId,
+    userId: input.userId,
+    authorId: input.authorId,
+    appliedAt,
+  });
   const created = await createRecord<AirtableGatheringParticipantFields>(
     config.gatheringParticipantsTable,
-    {
-      'Gathering ID': input.gatheringId,
-      'User ID': input.userId,
-      'Author ID': input.authorId,
-      Status: 'applied',
-      'Applied At': appliedAt,
-    },
+    fields,
     { typecast: true },
   );
   return mapParticipant(created);
