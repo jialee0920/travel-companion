@@ -12,7 +12,8 @@ import {
 } from '@/lib/auth/session';
 import { normalizeInterestCategories } from '@/lib/profile/constants';
 import { airtableUserToUserProfile } from '@/lib/profile/transform';
-import { isKnownRegionCode, normalizeUserRegions, primaryRegion } from '@/lib/regions';
+import { isKnownUserRegion, normalizeUserRegionList } from '@/lib/regions/constants';
+import { primaryRegion } from '@/lib/regions';
 import { normalizePhone } from '@/lib/user-profile';
 import { displayNickname } from '@/lib/users/nickname';
 
@@ -72,22 +73,19 @@ export async function PATCH(request: Request) {
     let normalizedRegions: string[] | undefined;
     if (regions !== undefined) {
       console.info('[PATCH /api/profile] regions raw', {
+        typeof: typeof regions,
         isArray: Array.isArray(regions),
         json: JSON.stringify(regions),
       });
-      if (!Array.isArray(regions)) {
-        return NextResponse.json({ error: '활동 지역 형식이 올바르지 않습니다.' }, { status: 400 });
-      }
-      normalizedRegions = normalizeUserRegions(
-        regions.filter((value): value is string => typeof value === 'string'),
-      );
+
+      normalizedRegions = normalizeUserRegionList(regions);
       if (normalizedRegions.length === 0) {
         return NextResponse.json(
           { error: '활동 지역을 하나 이상 선택해주세요.' },
           { status: 400 },
         );
       }
-      if (normalizedRegions.some((code) => !isKnownRegionCode(code))) {
+      if (normalizedRegions.some((code) => !isKnownUserRegion(code))) {
         return NextResponse.json({ error: '올바른 지역을 선택해주세요.' }, { status: 400 });
       }
     }

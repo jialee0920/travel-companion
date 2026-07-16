@@ -13,16 +13,63 @@ const LEGACY_REGION_ALIASES: Record<string, UserRegionValue> = {
   mukho: REGION_MUKHO,
 };
 
-/** JSON.stringify 등으로 감싸진 따옴표 제거 */
+/** JSON.stringify 등으로 감싸진 따옴표·JSON 문자열 제거 */
 export function sanitizeRegionToken(raw: string): string {
   let value = raw.trim();
-  while (
-    value.length >= 2 &&
-    ((value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'")))
-  ) {
-    value = value.slice(1, -1).trim();
+  if (!value) return value;
+
+  for (let pass = 0; pass < 5; pass += 1) {
+    if (value.startsWith('[') && value.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        if (Array.isArray(parsed)) {
+          if (parsed.length === 1 && typeof parsed[0] === 'string') {
+            value = parsed[0].trim();
+            continue;
+          }
+          break;
+        }
+        if (typeof parsed === 'string') {
+          value = parsed.trim();
+          continue;
+        }
+      } catch {
+        break;
+      }
+    }
+
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        if (typeof parsed === 'string') {
+          value = parsed.trim();
+          continue;
+        }
+      } catch {
+        value = value.slice(1, -1).trim();
+        continue;
+      }
+    }
+
+    if (value.includes('\\"')) {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        if (typeof parsed === 'string') {
+          value = parsed.trim();
+          continue;
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+
+    break;
   }
+
   return value;
 }
 
@@ -86,7 +133,28 @@ export function normalizeUserRegionList(values: unknown): UserRegionValue[] {
 /** Airtable 쓰기용 Region 필드 — 빈 배열이면 undefined (필드 생략) */
 export function buildAirtableRegionField(values: unknown): UserRegionValue[] | undefined {
   const normalized = normalizeUserRegionList(values);
-  return normalized.length > 0 ? normalized : undefined;
+  if (normalized.length === 0) return undefined;
+  // Airtable Multiple select: 순수 문자열 배열 (새 배열로 복사)
+  return normalized.map((region) => region);
+}
+
+/** Airtable 전송 직전 Region 검증 — 따옴표·알 수 없는 값 차단 */
+export function assertAirtableRegionField(
+  regions: UserRegionValue[] | undefined,
+): UserRegionValue[] | undefined {
+  if (!regions || regions.length === 0) return undefined;
+  for (const region of regions) {
+    if (typeof region !== 'string') {
+      throw new Error(`Region must be string[], got ${typeof region}`);
+    }
+    if (/["'\\[\]]/.test(region)) {
+      throw new Error(`Region value contains invalid characters: ${JSON.stringify(region)}`);
+    }
+    if (!(USER_REGION_VALUES as readonly string[]).includes(region)) {
+      throw new Error(`Unknown Region value: ${JSON.stringify(region)}`);
+    }
+  }
+  return [...regions];
 }
 
 export function isKnownUserRegion(value: string): boolean {

@@ -127,6 +127,37 @@ export async function updateRecord<T extends Record<string, unknown>>(
   return data.records[0];
 }
 
+/** typecast 없이 레코드 생성 (Users Region 등 select 오타 방지) */
+export async function createRecordNoTypecast<T extends Record<string, unknown>>(
+  table: string,
+  fields: T,
+): Promise<AirtableRecord<T>> {
+  const config = requireAirtableConfig();
+  const payload = { records: [{ fields }] };
+
+  const data = await airtableFetch<{ records: AirtableRecord<T>[] }>(config, table, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return data.records[0];
+}
+
+/** typecast 없이 레코드 수정 (Users Region 등 select 오타 방지) */
+export async function updateRecordNoTypecast<T extends Record<string, unknown>>(
+  table: string,
+  id: string,
+  fields: Partial<T>,
+): Promise<AirtableRecord<T>> {
+  const config = requireAirtableConfig();
+  const payload = { records: [{ id, fields }] };
+
+  const data = await airtableFetch<{ records: AirtableRecord<T>[] }>(config, table, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  return data.records[0];
+}
+
 export async function deleteRecord(table: string, id: string): Promise<void> {
   const config = requireAirtableConfig();
   await airtableFetch(config, table, {

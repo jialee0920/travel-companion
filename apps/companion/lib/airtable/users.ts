@@ -4,7 +4,7 @@ import {
   parseUserRegions,
   primaryRegion,
 } from '@/lib/regions';
-import { buildAirtableRegionField } from '@/lib/regions/constants';
+import { assertAirtableRegionField, buildAirtableRegionField } from '@/lib/regions/constants';
 import {
   airtableAndFormula,
   airtableRegionFormula,
@@ -18,11 +18,11 @@ import {
   normalizeNicknameKey,
 } from '@/lib/users/nickname';
 import {
-  createRecord,
+  createRecordNoTypecast,
   escapeAirtableFormula,
   getRecord,
   listRecords,
-  updateRecord,
+  updateRecordNoTypecast,
 } from './client';
 import { getAirtableConfig, requireAirtableConfig } from './config';
 
@@ -91,6 +91,25 @@ export function maskDisplayName(display: string): string {
   return `${trimmed.slice(0, 1)}**`;
 }
 
+function sanitizeUserFieldsForAirtable(
+  fields: Partial<AirtableUserFields>,
+): Partial<AirtableUserFields> {
+  const out: Partial<AirtableUserFields> = { ...fields };
+
+  if (out.Region !== undefined) {
+    const regionInput =
+      typeof out.Region === 'string' ? out.Region : out.Region;
+    const regionField = assertAirtableRegionField(buildAirtableRegionField(regionInput));
+    if (regionField) {
+      out.Region = regionField;
+    } else {
+      delete out.Region;
+    }
+  }
+
+  return out;
+}
+
 function logAirtableUsersPayload(
   action: 'createRecord' | 'updateRecord',
   fields: Partial<AirtableUserFields>,
@@ -128,8 +147,9 @@ async function createUserRecord(
   fields: Partial<AirtableUserFields>,
 ): Promise<AirtableRecord<AirtableUserFields>> {
   const config = requireAirtableConfig();
-  logAirtableUsersPayload('createRecord', fields);
-  return createRecord<AirtableUserFields>(config.usersTable, fields);
+  const sanitized = sanitizeUserFieldsForAirtable(fields);
+  logAirtableUsersPayload('createRecord', sanitized);
+  return createRecordNoTypecast<AirtableUserFields>(config.usersTable, sanitized);
 }
 
 async function updateUserRecord(
@@ -137,8 +157,9 @@ async function updateUserRecord(
   fields: Partial<AirtableUserFields>,
 ): Promise<AirtableRecord<AirtableUserFields>> {
   const config = requireAirtableConfig();
-  logAirtableUsersPayload('updateRecord', fields, recordId);
-  return updateRecord<AirtableUserFields>(config.usersTable, recordId, fields);
+  const sanitized = sanitizeUserFieldsForAirtable(fields);
+  logAirtableUsersPayload('updateRecord', sanitized, recordId);
+  return updateRecordNoTypecast<AirtableUserFields>(config.usersTable, recordId, sanitized);
 }
 
 type AirtableRecord<T> = { id: string; fields: T };
