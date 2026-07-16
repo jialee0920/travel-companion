@@ -67,3 +67,23 @@ export function openProductExternalLink(url: string): void {
   if (typeof window === 'undefined') return;
   window.open(url, '_blank', 'noopener,noreferrer');
 }
+
+/** kakao_channel 등 — 같은 탭에서 이동 (앱 내부는 client router, 외부는 location.assign) */
+export function navigateProductExternalLinkSameWindow(
+  url: string,
+  navigate: (href: string) => void,
+): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const target = new URL(url, window.location.href);
+    const href = `${target.pathname}${target.search}${target.hash}` || '/';
+    if (target.origin === window.location.origin) {
+      navigate(href);
+      return;
+    }
+    window.location.assign(target.toString());
+  } catch {
+    window.location.assign(url);
+  }
+}

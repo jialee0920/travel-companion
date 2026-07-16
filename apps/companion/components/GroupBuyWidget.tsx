@@ -13,6 +13,7 @@ import {
   isReservationAction,
   KAKAO_CHANNEL_BUTTON_LABEL,
   KAKAO_CHANNEL_NO_LINK_MSG,
+  navigateProductExternalLinkSameWindow,
   openProductExternalLink,
   PAYMENT_LINK_BUTTON_LABEL,
   PAYMENT_LINK_NO_LINK_MSG,
@@ -269,7 +270,9 @@ export function GroupBuyWidget({ product, children }: Props) {
             type="button"
             disabled={kakaoLinkDisabled}
             onClick={() => {
-              if (externalLinkUrl) openProductExternalLink(externalLinkUrl);
+              if (externalLinkUrl) {
+                navigateProductExternalLinkSameWindow(externalLinkUrl, router.push);
+              }
             }}
             className={cn(
               'mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold',
