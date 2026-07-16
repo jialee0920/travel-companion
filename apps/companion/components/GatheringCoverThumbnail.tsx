@@ -12,7 +12,7 @@ type Props = {
   className?: string;
 };
 
-/** 동행 카드 왼쪽 88×88 썸네일 — Cover Image 또는 지역 플레이스홀더 */
+/** 동행 카드 왼쪽 96×96 썸네일 — Cover Image 또는 지역 플레이스홀더 */
 export function GatheringCoverThumbnail({ coverImageUrl, region, className }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
   const src = resolveGatheringCoverImageUrl(coverImageUrl, region);
@@ -22,7 +22,7 @@ export function GatheringCoverThumbnail({ coverImageUrl, region, className }: Pr
       <span
         aria-hidden
         className={cn(
-          'inline-flex size-[88px] shrink-0 items-center justify-center rounded-xl bg-muted',
+          'inline-flex size-24 shrink-0 items-center justify-center rounded-2xl bg-muted',
           className,
         )}
       >
@@ -34,15 +34,15 @@ export function GatheringCoverThumbnail({ coverImageUrl, region, className }: Pr
   return (
     <span
       className={cn(
-        'relative inline-flex size-[88px] shrink-0 overflow-hidden rounded-xl bg-muted',
+        'relative inline-flex size-24 shrink-0 overflow-hidden rounded-2xl bg-muted',
         className,
       )}
     >
       <Image
         src={src}
         alt=""
-        width={88}
-        height={88}
+        width={96}
+        height={96}
         className="size-full object-cover"
         unoptimized
         onError={() => setImageFailed(true)}

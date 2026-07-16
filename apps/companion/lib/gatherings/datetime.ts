@@ -102,6 +102,37 @@ const timeOpts: Intl.DateTimeFormatOptions = {
   hour12: true,
 };
 
+/** 카드 3행 — 7.17(금) 오후 6:00 형식, 항상 KST */
+export function formatGatheringDateCard(value: string | null | undefined): string | null {
+  if (!value?.trim()) return null;
+  const raw = value.trim();
+
+  let date: Date;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    date = new Date(`${raw}T12:00:00+09:00`);
+  } else {
+    date = new Date(raw);
+  }
+  if (Number.isNaN(date.getTime())) return null;
+
+  const { month, day } = kstParts(date);
+  const weekday = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: KST,
+    weekday: 'short',
+  })
+    .format(date)
+    .replace(/\./g, '');
+
+  const dateLabel = `${Number(month)}.${Number(day)}(${weekday})`;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw) || !hasExplicitTime(raw)) {
+    return dateLabel;
+  }
+
+  const timeLabel = date.toLocaleTimeString('ko-KR', timeOpts);
+  return `${dateLabel} ${timeLabel}`;
+}
+
 /** 카드용 — 짧은 날짜 + 시간(있으면), 항상 KST */
 export function formatGatheringDateShort(value: string | null | undefined): string | null {
   if (!value?.trim()) return null;

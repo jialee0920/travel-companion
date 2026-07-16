@@ -1,11 +1,15 @@
 'use client';
 
-import { Calendar, MapPin, Users } from 'lucide-react';
+import { MapPin, Users } from 'lucide-react';
 import Link from 'next/link';
 import { GatheringCoverThumbnail } from '@/components/GatheringCoverThumbnail';
 import { UserAvatar } from '@/components/UserAvatar';
 import type { GatheringRecord } from '@/lib/db/gatherings';
-import { formatGatheringDateShort } from '@/lib/gatherings/datetime';
+import { formatGatheringDateCard } from '@/lib/gatherings/datetime';
+import {
+  getGatheringRecruitLabel,
+  getGatheringStatusBadge,
+} from '@/lib/gatherings/status';
 import { getRegionDisplayName } from '@/lib/regions';
 import { cn } from '@/lib/utils';
 
@@ -14,67 +18,62 @@ type Props = {
 };
 
 export function GatheringCard({ gathering }: Props) {
-  const dateLabel = formatGatheringDateShort(gathering.gathering_date);
-  const closed = gathering.status === 'closed';
+  const dateLabel = formatGatheringDateCard(gathering.gathering_date);
+  const regionLabel = getRegionDisplayName(gathering.region);
+  const statusBadge = getGatheringStatusBadge(gathering);
+  const recruitLabel = getGatheringRecruitLabel(gathering);
+  const locationDateLine = [regionLabel, dateLabel].filter(Boolean).join(' · ');
 
   return (
     <Link
       href={`/gatherings/${gathering.id}`}
       className={cn(
-        'block rounded-[1.25rem] border border-border/80 bg-card p-4 shadow-[var(--shadow-card)] transition-colors hover:bg-secondary/30',
+        'block rounded-2xl bg-white px-4 py-3.5 transition-transform active:scale-[0.98]',
       )}
     >
-      <div className="flex gap-3">
+      <div className="flex gap-3.5">
         <GatheringCoverThumbnail
           coverImageUrl={gathering.cover_image_url}
           region={gathering.region}
         />
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary-muted px-2.5 py-0.5 text-xs font-semibold text-primary">
-              <span aria-hidden>🤝</span>
+        <div className="flex min-h-24 min-w-0 flex-1 flex-col justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="rounded-lg bg-[#F0F0F0] px-2.5 py-1 text-xs font-medium text-[#4A4A4A]">
               동행
             </span>
-            <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
-              <MapPin className="size-3" />
-              {getRegionDisplayName(gathering.region)}
-            </span>
-            {closed && (
-              <span className="ml-auto text-xs font-semibold text-muted-foreground">마감</span>
+            {statusBadge && (
+              <span className="rounded-lg bg-primary-muted px-2.5 py-1 text-xs font-medium text-[#F4623A]">
+                {statusBadge}
+              </span>
             )}
           </div>
 
-          <p className="mt-2 line-clamp-2 text-[15px] font-bold leading-snug text-foreground">
-            {gathering.title}
-          </p>
-          <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-            {gathering.description}
+          <p className="truncate text-base font-bold text-[#1A1A1A]">{gathering.title}</p>
+
+          <p className="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+            <MapPin className="size-3.5 shrink-0" strokeWidth={2} />
+            <span className="truncate">{locationDateLine}</span>
           </p>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex min-w-0 max-w-full items-center gap-1.5">
-              <UserAvatar
-                name={gathering.author_name}
-                avatarUrl={gathering.author_avatar_url}
-                size="xs"
-                className="shrink-0"
-              />
-              <span className="truncate font-medium text-foreground">
-                {gathering.author_name}
+          <p className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+            <UserAvatar
+              name={gathering.author_name}
+              avatarUrl={gathering.author_avatar_url}
+              size="xs"
+              className="shrink-0"
+            />
+            <span className="min-w-0 truncate">
+              {gathering.author_name}
+              {' · '}
+              <span className="inline-flex items-center gap-0.5">
+                <Users className="size-3.5 shrink-0" strokeWidth={2} />
+                {gathering.current_count}/{gathering.target_count}명
               </span>
+              {' · '}
+              {recruitLabel}
             </span>
-            {dateLabel && (
-              <span className="flex items-center gap-1">
-                <Calendar className="size-3.5" />
-                {dateLabel}
-              </span>
-            )}
-            <span className="flex items-center gap-1 font-medium text-primary">
-              <Users className="size-3.5" />
-              참여자 {gathering.current_count}/{gathering.target_count}명
-            </span>
-          </div>
+          </p>
         </div>
       </div>
     </Link>
