@@ -30,7 +30,7 @@ export default async function GroupBuyPage() {
       <PageGutter className="mt-3 space-y-3">
         <SaleBanner />
         <div className={infoBannerClass}>
-          <p className="text-sm font-bold text-foreground">공동구매 · 목표 인원 모집</p>
+          <p className="text-sm font-bold text-foreground">공동구매 · 목표 물량 모집</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             함께 모이면 더 저렴하게, 달성 시 이용권이 발급돼요.
           </p>

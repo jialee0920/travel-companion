@@ -35,7 +35,7 @@ export async function GET(_request: Request, { params }: Props) {
 }
 
 /** 사전 예약 생성 */
-export async function POST(_request: Request, { params }: Props) {
+export async function POST(request: Request, { params }: Props) {
   const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
@@ -43,11 +43,20 @@ export async function POST(_request: Request, { params }: Props) {
 
   try {
     const { id } = await params;
+    let quantity = 1;
+    try {
+      const body = await request.json();
+      quantity = typeof body?.quantity === 'number' ? body.quantity : 1;
+    } catch {
+      quantity = 1;
+    }
+
     const result = await reserveProduct({
       productId: id,
       userId: session.id,
       name: session.name || session.nickname,
       phone: session.phone,
+      quantity,
     });
 
     return NextResponse.json({

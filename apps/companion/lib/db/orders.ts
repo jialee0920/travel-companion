@@ -7,6 +7,7 @@ import {
 import {
   incrementProductCount as incrementAirtableProductCount,
   decrementProductCount as decrementAirtableProductCount,
+  syncProductCurrentCount as syncAirtableProductCurrentCount,
 } from '@/lib/airtable/products';
 import {
   getOrderByMerchantUid as getAirtableOrderByMerchantUid,
@@ -106,15 +107,23 @@ export async function listParticipants(productId: string): Promise<ParticipantRe
   return memoryParticipants.filter((p) => p.product_id === productId);
 }
 
-export async function incrementProductCount(productId: string): Promise<void> {
+export async function syncProductCount(productId: string): Promise<void> {
   if (getAirtableConfig()) {
-    await incrementAirtableProductCount(productId);
-    return;
+    await syncAirtableProductCurrentCount(productId);
   }
 }
 
-export async function decrementProductCount(productId: string): Promise<void> {
+export async function incrementProductCount(productId: string, quantity = 1): Promise<void> {
   if (getAirtableConfig()) {
-    await decrementAirtableProductCount(productId);
+    await incrementAirtableProductCount(productId, quantity);
+    return;
   }
+  void quantity;
+}
+
+export async function decrementProductCount(productId: string, quantity = 1): Promise<void> {
+  if (getAirtableConfig()) {
+    await decrementAirtableProductCount(productId, quantity);
+  }
+  void quantity;
 }

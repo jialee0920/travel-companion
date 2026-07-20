@@ -2,6 +2,9 @@ import { DEFAULT_REGION_CODE } from '@/lib/regions';
 import { isRegionFilterEnabled } from '@/lib/region-filter';
 import type { GroupBuyStatus, RegionProduct } from '@/lib/regions/types';
 import { parseProductActionType } from '@/lib/products/action-type';
+import { parseOrderQuantity } from '@/lib/group-buy/quantity';
+import { listPaidOrdersByProductId } from './orders';
+import { listActiveReservationsByProductId } from './product-reservations';
 import { createRecord, escapeAirtableFormula, listRecords, updateRecord } from './client';
 import { requireAirtableConfig } from './config';
 import {
@@ -144,35 +147,50 @@ export async function seedProductsIfEmpty(region = DEFAULT_REGION_CODE): Promise
   return created;
 }
 
-export async function incrementProductCount(productId: string): Promise<void> {
-  const found = await findProductRecordByProductId(productId);
-  if (!found) return;
-
-  const nextCount = found.product.currentCount + 1;
-  const status: GroupBuyStatus =
-    nextCount >= found.product.targetCount ? 'success' : found.product.groupBuyStatus;
-
-  const config = requireAirtableConfig();
-  await updateRecord<AirtableProductFields>(config.productsTable, found.id, {
-    'Current Count': nextCount,
-    'Group Buy Status': status,
-  });
+export async function sumActiveProductQuantity(productId: string): Promise<number> {
+  const [orders, reservations] = await Promise.all([
+    listPaidOrdersByProductId(productId),
+    listActiveReservationsByProductId(productId),
+  ]);
+  const orderQty = orders.reduce((sum, row) => sum + parseOrderQuantity(row.quantity), 0);
+  const reservationQty = reservations.reduce(
+    (sum, row) => sum + parseOrderQuantity(row.quantity),
+    0,
+  );
+  return orderQty + reservationQty;
 }
 
-export async function decrementProductCount(productId: string): Promise<void> {
+/** 유효 주문·예약 Quantity 합계로 Products Current Count 동기화 */
+export async function syncProductCurrentCount(
+  productId: string,
+): Promise<{ currentCount: number; targetCount: number; groupBuyStatus: GroupBuyStatus } | null> {
   const found = await findProductRecordByProductId(productId);
-  if (!found) return;
+  if (!found) return null;
 
-  const nextCount = Math.max(0, found.product.currentCount - 1);
-  const status: GroupBuyStatus =
-    found.product.groupBuyStatus === 'success' &&
-    (found.product.targetCount <= 0 || nextCount < found.product.targetCount)
-      ? 'open'
-      : found.product.groupBuyStatus;
+  const currentCount = await sumActiveProductQuantity(productId);
+  const { targetCount } = found.product;
+  const groupBuyStatus: GroupBuyStatus =
+    targetCount > 0 && currentCount >= targetCount
+      ? 'success'
+      : found.product.groupBuyStatus === 'success' &&
+          (targetCount <= 0 || currentCount < targetCount)
+        ? 'open'
+        : found.product.groupBuyStatus;
 
   const config = requireAirtableConfig();
   await updateRecord<AirtableProductFields>(config.productsTable, found.id, {
-    'Current Count': nextCount,
-    'Group Buy Status': status,
+    'Current Count': currentCount,
+    'Group Buy Status': groupBuyStatus,
   });
+
+  return { currentCount, targetCount, groupBuyStatus };
+}
+
+export async function incrementProductCount(productId: string, quantity = 1): Promise<void> {
+  await syncProductCurrentCount(productId);
+}
+
+export async function decrementProductCount(productId: string, quantity = 1): Promise<void> {
+  void quantity;
+  await syncProductCurrentCount(productId);
 }

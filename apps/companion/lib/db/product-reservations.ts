@@ -7,7 +7,12 @@ import {
   type ProductReservationRecord,
   type ProductReservationStatus,
 } from '@/lib/airtable/product-reservations';
-import { decrementProductCount, incrementProductCount } from '@/lib/db/orders';
+import { syncProductCurrentCount } from '@/lib/airtable/products';
+import {
+  assertGroupBuyQuantityAvailable,
+  isGroupBuyQuantityFull,
+  parseOrderQuantity,
+} from '@/lib/group-buy/quantity';
 import { getProductById } from '@/lib/db/products';
 import { normalizePhone } from '@/lib/user-profile';
 
@@ -30,20 +35,18 @@ export class ProductReservationError extends Error {
 type MemoryReservation = ProductReservationRecord;
 
 const memoryReservations = new Map<string, MemoryReservation>();
+const memoryProductCounts = new Map<string, number>();
 
 function memoryKey(productId: string, userId: string) {
   return `${productId}:${userId}`;
 }
 
-function isReservationFull(product: {
-  groupBuyStatus: string;
-  currentCount: number;
-  targetCount: number;
-}): boolean {
-  return (
-    product.groupBuyStatus === 'success' ||
-    (product.targetCount > 0 && product.currentCount >= product.targetCount)
-  );
+function getMemoryProductCount(productId: string, fallback: number): number {
+  return memoryProductCounts.get(productId) ?? fallback;
+}
+
+function setMemoryProductCount(productId: string, count: number): void {
+  memoryProductCounts.set(productId, count);
 }
 
 export async function findUserProductReservation(
@@ -95,6 +98,7 @@ export async function reserveProduct(input: {
   userId: string;
   name: string;
   phone: string;
+  quantity: number;
 }): Promise<{
   reservation: ProductReservationRecord;
   alreadyReserved: boolean;
@@ -117,6 +121,7 @@ export async function reserveProduct(input: {
 
   const name = input.name.trim();
   const phone = normalizePhone(input.phone);
+  const quantity = parseOrderQuantity(input.quantity);
   if (!name || !phone) {
     throw new ProductReservationError('이름과 연락처가 필요합니다.', 400);
   }
@@ -131,11 +136,13 @@ export async function reserveProduct(input: {
     };
   }
 
-  if (isReservationFull(product)) {
-    throw new ProductReservationError(
-      '목표 인원이 채워져 예약이 마감되었어요.',
-      400,
-    );
+  try {
+    assertGroupBuyQuantityAvailable(product, quantity);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new ProductReservationError(error.message, 400);
+    }
+    throw error;
   }
 
   if (getAirtableConfig()) {
@@ -144,13 +151,13 @@ export async function reserveProduct(input: {
       userId: input.userId,
       name,
       phone,
+      quantity,
     });
-    await incrementProductCount(input.productId);
-    const refreshed = await getProductById(input.productId);
+    const synced = await syncProductCurrentCount(input.productId);
     return {
       reservation,
       alreadyReserved: false,
-      currentCount: refreshed?.currentCount ?? product.currentCount + 1,
+      currentCount: synced?.currentCount ?? product.currentCount + quantity,
       targetCount: product.targetCount,
     };
   }
@@ -161,14 +168,17 @@ export async function reserveProduct(input: {
     user_id: input.userId,
     name,
     phone,
+    quantity,
     status: 'reserved',
     reserved_at: new Date().toISOString(),
   };
   memoryReservations.set(memoryKey(input.productId, input.userId), reservation);
+  const nextCount = getMemoryProductCount(input.productId, product.currentCount) + quantity;
+  setMemoryProductCount(input.productId, nextCount);
   return {
     reservation,
     alreadyReserved: false,
-    currentCount: product.currentCount + 1,
+    currentCount: nextCount,
     targetCount: product.targetCount,
   };
 }
@@ -196,11 +206,10 @@ export async function cancelProductReservation(input: {
 
   if (getAirtableConfig()) {
     const reservation = await cancelAirtableReservation(existing.id);
-    await decrementProductCount(input.productId);
-    const refreshed = await getProductById(input.productId);
+    const synced = await syncProductCurrentCount(input.productId);
     return {
       reservation,
-      currentCount: refreshed?.currentCount ?? Math.max(0, product.currentCount - 1),
+      currentCount: synced?.currentCount ?? Math.max(0, product.currentCount - existing.quantity),
       targetCount: product.targetCount,
     };
   }
@@ -210,9 +219,16 @@ export async function cancelProductReservation(input: {
     status: 'cancelled',
   };
   memoryReservations.set(memoryKey(input.productId, input.userId), reservation);
+  const nextCount = Math.max(
+    0,
+    getMemoryProductCount(input.productId, product.currentCount) - existing.quantity,
+  );
+  setMemoryProductCount(input.productId, nextCount);
   return {
     reservation,
-    currentCount: Math.max(0, product.currentCount - 1),
+    currentCount: nextCount,
     targetCount: product.targetCount,
   };
 }
+
+export { isGroupBuyQuantityFull };

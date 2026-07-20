@@ -5,6 +5,12 @@ import { generateOrderCode, perPersonCharge } from '@/lib/geo';
 import { completeOrderAfterPayment } from '@/lib/payments/complete-order';
 import { getPaymentProvider } from '@/lib/payments/provider';
 import {
+  assertGroupBuyQuantityAvailable,
+  GroupBuyQuantityError,
+  parseOrderQuantity,
+  totalCharge,
+} from '@/lib/group-buy/quantity';
+import {
   isKakaoChannelAction,
   isPaymentLinkAction,
   isReservationAction,
@@ -87,12 +93,13 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { productId, name, phone, region, profileId } = body as {
+    const { productId, name, phone, region, profileId, quantity: rawQuantity } = body as {
       productId?: string;
       name?: string;
       phone?: string;
       region?: string;
       profileId?: string;
+      quantity?: number;
     };
 
     if (!productId || !name || !phone) {
@@ -132,10 +139,21 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: '모집이 완료된 상품입니다.' }, { status: 400 });
     }
 
+    const quantity = parseOrderQuantity(rawQuantity);
+    try {
+      assertGroupBuyQuantityAvailable(product, quantity);
+    } catch (error) {
+      if (error instanceof GroupBuyQuantityError) {
+        return NextResponse.json({ error: error.message }, { status: error.status });
+      }
+      throw error;
+    }
+
     const provider = getPaymentProvider();
     const checkout = provider.getClientCheckoutConfig();
 
-    const amount = perPersonCharge(product.discountedPrice, product.targetCount);
+    const unitCharge = perPersonCharge(product.discountedPrice, product.targetCount);
+    const amount = totalCharge(unitCharge, quantity);
     const merchantUid = `order_${crypto.randomUUID()}`;
     const orderCode = generateOrderCode();
 
@@ -154,6 +172,7 @@ export async function PUT(request: Request) {
       participant_phone: phone,
       region: resolvedRegion,
       amount,
+      quantity,
       payment_status: 'pending',
       merchant_uid: merchantUid,
       imp_uid: null,
@@ -163,6 +182,7 @@ export async function PUT(request: Request) {
       merchantUid,
       orderCode,
       amount,
+      quantity,
       productName: product.name,
       checkout,
     });

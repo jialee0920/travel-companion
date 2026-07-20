@@ -4,8 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Loader2, Users } from 'lucide-react';
+import { QuantityStepper } from '@/components/QuantityStepper';
 import type { RegionProduct } from '@/lib/regions/types';
 import { formatPrice, perPersonCharge } from '@/lib/geo';
+import {
+  clampOrderQuantity,
+  formatGroupBuySummary,
+  remainingGroupBuyQuantity,
+  totalCharge,
+} from '@/lib/group-buy/quantity';
 import { formatDiscountPercent } from '@/lib/products/format';
 import {
   isKakaoChannelAction,
@@ -78,6 +85,7 @@ export function GroupBuyWidget({ product, children }: Props) {
   const [alreadyReserved, setAlreadyReserved] = useState(false);
   const [reservationChecked, setReservationChecked] = useState(false);
   const [displayCount, setDisplayCount] = useState(product.currentCount);
+  const [quantity, setQuantity] = useState(1);
 
   const isKakaoChannel = isKakaoChannelAction(product.actionType);
   const isPaymentLink = isPaymentLinkAction(product.actionType);
@@ -97,10 +105,18 @@ export function GroupBuyWidget({ product, children }: Props) {
     product.targetCount > 0 &&
     displayCount >= product.targetCount;
   const charge = perPersonCharge(product.discountedPrice, product.targetCount);
+  const summaryCount = isReservation ? displayCount : product.currentCount;
+  const remaining = remainingGroupBuyQuantity(product.targetCount, summaryCount);
+  const maxQuantity = Math.max(1, remaining);
+  const lineTotal = totalCharge(charge, quantity);
 
   useEffect(() => {
     setDisplayCount(product.currentCount);
   }, [product.currentCount]);
+
+  useEffect(() => {
+    setQuantity((prev) => clampOrderQuantity(prev, remaining));
+  }, [remaining]);
 
   useEffect(() => {
     if (!isReservation || !ready) return;
@@ -157,6 +173,7 @@ export function GroupBuyWidget({ product, children }: Props) {
           phone: profile.phone,
           region: product.region,
           profileId: profile.id,
+          quantity,
         }),
       });
       const prepare = await prepareRes.json();
@@ -209,6 +226,8 @@ export function GroupBuyWidget({ product, children }: Props) {
     try {
       const res = await fetch(`/api/products/${encodeURIComponent(product.id)}/reservation`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? '사전 예약 실패');
@@ -219,7 +238,7 @@ export function GroupBuyWidget({ product, children }: Props) {
       if (typeof data.currentCount === 'number') {
         setDisplayCount(data.currentCount);
       } else if (!data.alreadyReserved) {
-        setDisplayCount((prev) => prev + 1);
+        setDisplayCount((prev) => prev + quantity);
       }
     } catch (err) {
       setStatus('error');
@@ -358,8 +377,6 @@ export function GroupBuyWidget({ product, children }: Props) {
     );
   }
 
-  const summaryCount = isReservation ? displayCount : product.currentCount;
-
   const reserved = alreadyReserved;
   const checking = Boolean(profile?.id) && !reservationChecked;
   const canReserve = !reserved && !isReservationFull;
@@ -378,7 +395,7 @@ export function GroupBuyWidget({ product, children }: Props) {
           </span>
           <span className="flex items-center gap-1 text-sm font-semibold">
             <Users className="size-4 text-primary" />
-            목표 {product.targetCount}명 · 현재 {summaryCount}명
+            {formatGroupBuySummary(product.targetCount, summaryCount)}
           </span>
         </div>
       )}
@@ -412,11 +429,11 @@ export function GroupBuyWidget({ product, children }: Props) {
       ) : (
         <>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            1인 금액이 아니라, 공동구매 달성 시 목표 인원으로 나눈 금액을 청구해요.
+            1인 금액이 아니라, 공동구매 달성 시 목표 물량으로 나눈 금액을 청구해요.
           </p>
           {isComplete && status !== 'paid' && (
             <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-center text-sm font-medium text-secondary-foreground">
-              목표 인원 달성! 공동구매가 완료되었습니다.
+              목표 물량 달성! 공동구매가 완료되었습니다.
             </p>
           )}
         </>
@@ -445,10 +462,24 @@ export function GroupBuyWidget({ product, children }: Props) {
   } else if (isReservation) {
     actionSection = (
       <div className="px-4 pb-4 pt-3">
+        {!reserved && canReserve && remaining > 0 ? (
+          <QuantityStepper
+            value={quantity}
+            max={maxQuantity}
+            disabled={busy}
+            onChange={setQuantity}
+            className="mb-3"
+          />
+        ) : null}
         <div className="flex justify-between text-base font-bold">
-          <span>1인 청구 금액</span>
-          <span>{formatPrice(charge)}원</span>
+          <span>{quantity > 1 ? '청구 금액' : '1인 청구 금액'}</span>
+          <span>{formatPrice(lineTotal)}원</span>
         </div>
+        {quantity > 1 ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {formatPrice(charge)}원 × {quantity}개
+          </p>
+        ) : null}
         {profile ? (
           <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-sm text-secondary-foreground">
             <span className="font-medium">{profile.name}</span> · {profile.phone}
@@ -514,10 +545,24 @@ export function GroupBuyWidget({ product, children }: Props) {
   } else {
     actionSection = (
       <div className="px-4 pb-4 pt-3">
+        {!isComplete && status !== 'paid' && remaining > 0 ? (
+          <QuantityStepper
+            value={quantity}
+            max={maxQuantity}
+            disabled={status === 'loading' || !ready}
+            onChange={setQuantity}
+            className="mb-3"
+          />
+        ) : null}
         <div className="flex justify-between text-base font-bold">
-          <span>1인 청구 금액</span>
-          <span>{formatPrice(charge)}원</span>
+          <span>{quantity > 1 ? '청구 금액' : '1인 청구 금액'}</span>
+          <span>{formatPrice(lineTotal)}원</span>
         </div>
+        {quantity > 1 ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {formatPrice(charge)}원 × {quantity}개
+          </p>
+        ) : null}
         {!isComplete && status !== 'paid' ? (
           <>
             {profile ? (

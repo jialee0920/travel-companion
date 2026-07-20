@@ -1,6 +1,17 @@
 import { getUserById, maskDisplayName, upsertUser, userDisplayName } from '@/lib/airtable/users';
 import { generateOrderCode } from '@/lib/geo';
-import { addParticipant, incrementProductCount, saveOrder, updateOrderPayment } from '@/lib/db/orders';
+import {
+  assertGroupBuyQuantityAvailable,
+  parseOrderQuantity,
+} from '@/lib/group-buy/quantity';
+import { getProductById } from '@/lib/db/products';
+import {
+  addParticipant,
+  getOrderByMerchantUid,
+  saveOrder,
+  syncProductCount,
+  updateOrderPayment,
+} from '@/lib/db/orders';
 
 export type CompleteOrderInput = {
   merchantUid: string;
@@ -16,6 +27,14 @@ export type CompleteOrderInput = {
 
 /** PG 승인 후 Orders·Participants 저장 (기존 PortOne confirm POST와 동일) */
 export async function completeOrderAfterPayment(input: CompleteOrderInput): Promise<void> {
+  const pendingOrder = await getOrderByMerchantUid(input.merchantUid);
+  const quantity = parseOrderQuantity(pendingOrder?.quantity);
+
+  const product = await getProductById(input.productId);
+  if (product) {
+    assertGroupBuyQuantityAvailable(product, quantity);
+  }
+
   const user = await upsertUser({
     name: input.name,
     phone: input.phone,
@@ -40,7 +59,7 @@ export async function completeOrderAfterPayment(input: CompleteOrderInput): Prom
       display_name: displayName,
       order_code: order.order_code,
     });
-    await incrementProductCount(input.productId);
+    await syncProductCount(input.productId);
     return;
   }
 
@@ -54,6 +73,7 @@ export async function completeOrderAfterPayment(input: CompleteOrderInput): Prom
     participant_phone: input.phone,
     region: input.region,
     amount: input.amount,
+    quantity,
     payment_status: 'paid',
     imp_uid: input.pgTransactionId,
     merchant_uid: input.merchantUid,
@@ -64,5 +84,5 @@ export async function completeOrderAfterPayment(input: CompleteOrderInput): Prom
     display_name: displayName,
     order_code: orderCode,
   });
-  await incrementProductCount(input.productId);
+  await syncProductCount(input.productId);
 }

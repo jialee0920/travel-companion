@@ -99,7 +99,7 @@ export function discountedPrice(regularPrice: number, discountRate: number): num
   return Math.round(regularPrice * (1 - rate));
 }
 
-/** 1인 청구: Airtable Discounted Price ÷ 목표 인원 */
+/** 1인 청구: Airtable Discounted Price ÷ 목표 물량 */
 export function perPersonCharge(discountedPrice: number, targetCount: number): number {
   if (targetCount <= 0) return 0;
   return Math.round(discountedPrice / targetCount);

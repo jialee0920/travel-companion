@@ -1,3 +1,4 @@
+import { parseOrderQuantity } from '@/lib/group-buy/quantity';
 import { normalizePhone } from '@/lib/user-profile';
 import { createRecord, escapeAirtableFormula, listRecords, updateRecord } from './client';
 import { requireAirtableConfig } from './config';
@@ -12,6 +13,7 @@ export type OrderRecord = {
   participant_phone: string;
   region: string;
   amount: number;
+  quantity: number;
   payment_status: 'pending' | 'paid' | 'failed';
   imp_uid?: string | null;
   merchant_uid?: string | null;
@@ -27,6 +29,7 @@ type OrderFields = {
   'Participant Phone': string;
   Region: string;
   Amount: number;
+  Quantity?: number;
   'Payment Status': string;
   'Imp UID'?: string;
   'Merchant UID'?: string;
@@ -43,6 +46,7 @@ function mapOrder(record: { id: string; createdTime?: string; fields: OrderField
     participant_phone: record.fields['Participant Phone'],
     region: record.fields.Region,
     amount: record.fields.Amount,
+    quantity: parseOrderQuantity(record.fields.Quantity),
     payment_status: record.fields['Payment Status'] as OrderRecord['payment_status'],
     imp_uid: record.fields['Imp UID'] ?? null,
     merchant_uid: record.fields['Merchant UID'] ?? null,
@@ -60,6 +64,7 @@ function toFields(order: Omit<OrderRecord, 'id' | 'created_at'>): OrderFields {
     'Participant Phone': order.participant_phone,
     Region: order.region,
     Amount: order.amount,
+    Quantity: order.quantity,
     'Payment Status': order.payment_status,
     'Imp UID': order.imp_uid ?? undefined,
     'Merchant UID': order.merchant_uid ?? undefined,
@@ -125,6 +130,16 @@ export async function listOrdersByProfileId(profileId: string): Promise<OrderRec
   return records
     .map(mapOrder)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+/** 결제 완료 주문 — 공동구매 물량 합산용 */
+export async function listPaidOrdersByProductId(productId: string): Promise<OrderRecord[]> {
+  const config = requireAirtableConfig();
+  const formula = `AND({Product ID}="${escapeAirtableFormula(productId)}",{Payment Status}="paid")`;
+  const records = await listRecords<OrderFields>(config.ordersTable, {
+    filterByFormula: formula,
+  });
+  return records.map(mapOrder);
 }
 
 export async function listOrdersByPhone(phone: string): Promise<OrderRecord[]> {

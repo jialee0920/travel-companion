@@ -9,6 +9,7 @@ import {
   isPaymentLinkAction,
   isReservationAction,
 } from '@/lib/products/action-type';
+import { formatGroupBuyProgress } from '@/lib/group-buy/quantity';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -108,7 +109,7 @@ export function GroupBuyCard({ product, compact }: Props) {
             </div>
             <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary">
               <Users className="size-3.5" />
-              {product.currentCount} / {product.targetCount}명
+              {formatGroupBuyProgress(product.currentCount, product.targetCount)}
             </span>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </div>

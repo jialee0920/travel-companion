@@ -7,6 +7,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import type { RegionProduct } from '@/lib/regions/types';
 import { formatPrice, perPersonCharge } from '@/lib/geo';
 import { formatDiscountPercent } from '@/lib/products/format';
+import { formatGroupBuySummary } from '@/lib/group-buy/quantity';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -95,7 +96,7 @@ export function MyReservationDetail({ product }: Props) {
           </span>
           <span className="flex items-center gap-1 text-sm font-semibold">
             <Users className="size-4 text-primary" />
-            목표 {product.targetCount}명 · 현재 {product.currentCount}명
+            {formatGroupBuySummary(product.targetCount, product.currentCount)}
           </span>
         </div>
 
