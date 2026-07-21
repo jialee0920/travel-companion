@@ -264,28 +264,24 @@ export function GroupBuyWidget({ product, children }: Props) {
               준비중
             </span>
           ) : (
-            <span className="rounded-lg bg-primary-muted px-2 py-1 text-sm font-bold text-primary">
-              얼리버드
-            </span>
-          )}
-          <div className="mt-4 space-y-1 text-sm">
-            <div className="flex justify-between text-muted-foreground">
-              <span>정가</span>
-              <span className="line-through">{formatPrice(product.regularPrice)}원</span>
-            </div>
-            <div className="flex justify-between font-semibold">
-              <span>얼리버드 할인가</span>
-              <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
-            </div>
-          </div>
-          {isPreparing ? (
-            <p className="mt-4 rounded-xl bg-secondary px-3 py-3 text-center text-sm font-medium text-secondary-foreground">
-              곧 만나요! 준비중인 상품이에요
-            </p>
-          ) : (
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              동행 모집글을 확인하고 신청해 보세요.
-            </p>
+            <>
+              <span className="rounded-lg bg-primary-muted px-2 py-1 text-sm font-bold text-primary">
+                얼리버드
+              </span>
+              <div className="mt-4 space-y-1 text-sm">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>정가</span>
+                  <span className="line-through">{formatPrice(product.regularPrice)}원</span>
+                </div>
+                <div className="flex justify-between font-semibold">
+                  <span>얼리버드 할인가</span>
+                  <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                동행 모집글을 확인하고 신청해 보세요.
+              </p>
+            </>
           )}
           {!hasExternalLink && !isPreparing ? (
             <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-center text-sm text-secondary-foreground">
@@ -293,7 +289,9 @@ export function GroupBuyWidget({ product, children }: Props) {
             </p>
           ) : null}
           {kakaoLinkDisabled ? (
-            <span className={kakaoCtaClass}>{KAKAO_CHANNEL_BUTTON_LABEL}</span>
+            <span className={kakaoCtaClass}>
+              {isPreparing ? '준비중' : KAKAO_CHANNEL_BUTTON_LABEL}
+            </span>
           ) : (
             <a href={kakaoHref} className={kakaoCtaClass}>
               {KAKAO_CHANNEL_BUTTON_LABEL}
@@ -318,37 +316,35 @@ export function GroupBuyWidget({ product, children }: Props) {
                 준비중
               </span>
             ) : (
-              <span className="rounded-lg bg-primary-muted px-2 py-1 text-sm font-bold text-primary">
-                {formatDiscountPercent(product.discountRate)}% 할인
-              </span>
-            )}
-            <div className="mt-4 space-y-1 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>정가</span>
-                <span className="line-through">{formatPrice(product.regularPrice)}원</span>
-              </div>
-              <div className="flex justify-between font-semibold">
-                <span>공동구매가</span>
-                <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
-              </div>
-            </div>
-            {isPreparing ? (
-              <p className="mt-3 rounded-xl bg-secondary px-3 py-3 text-center text-sm font-medium text-secondary-foreground">
-                곧 만나요! 준비중인 상품이에요
-              </p>
-            ) : (
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                외부 결제 페이지에서 결제를 진행해 주세요.
-              </p>
+              <>
+                <span className="rounded-lg bg-primary-muted px-2 py-1 text-sm font-bold text-primary">
+                  {formatDiscountPercent(product.discountRate)}% 할인
+                </span>
+                <div className="mt-4 space-y-1 text-sm">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>정가</span>
+                    <span className="line-through">{formatPrice(product.regularPrice)}원</span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>공동구매가</span>
+                    <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
+                  </div>
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                  외부 결제 페이지에서 결제를 진행해 주세요.
+                </p>
+              </>
             )}
           </div>
         </div>
         <StickyActionPanel>
           <div className="rounded-b-2xl border border-border bg-card px-4 pb-4 pt-3">
-            <div className="flex justify-between text-base font-bold">
-              <span>1인 청구 금액</span>
-              <span>{formatPrice(charge)}원</span>
-            </div>
+            {!isPreparing ? (
+              <div className="flex justify-between text-base font-bold">
+                <span>1인 청구 금액</span>
+                <span>{formatPrice(charge)}원</span>
+              </div>
+            ) : null}
             {!hasExternalLink && !isPreparing ? (
               <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-center text-sm text-secondary-foreground">
                 {PAYMENT_LINK_NO_LINK_MSG}
@@ -367,7 +363,7 @@ export function GroupBuyWidget({ product, children }: Props) {
                   : 'bg-primary text-primary-foreground',
               )}
             >
-              {PAYMENT_LINK_BUTTON_LABEL}
+              {isPreparing ? '준비중' : PAYMENT_LINK_BUTTON_LABEL}
               {!paymentLinkDisabled ? <ArrowRight className="size-5" /> : null}
             </button>
           </div>
@@ -400,44 +396,44 @@ export function GroupBuyWidget({ product, children }: Props) {
         </div>
       )}
 
-      <div className="mt-4 space-y-1 text-sm">
-        <div className="flex justify-between text-muted-foreground">
-          <span>정가</span>
-          <span className="line-through">{formatPrice(product.regularPrice)}원</span>
-        </div>
-        <div className="flex justify-between font-semibold">
-          <span>공동구매가</span>
-          <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
-        </div>
-      </div>
+      {!isPreparing ? (
+        <>
+          <div className="mt-4 space-y-1 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>정가</span>
+              <span className="line-through">{formatPrice(product.regularPrice)}원</span>
+            </div>
+            <div className="flex justify-between font-semibold">
+              <span>공동구매가</span>
+              <span className="text-primary">{formatPrice(product.discountedPrice)}원</span>
+            </div>
+          </div>
 
-      {isPreparing ? (
-        <p className="mt-3 rounded-xl bg-secondary px-3 py-3 text-center text-sm font-medium text-secondary-foreground">
-          곧 만나요! 준비중인 상품이에요
-        </p>
-      ) : isReservation ? (
-        <>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            지금은 사전 예약 기간이에요. 결제 준비되면 알림으로 알려드릴게요!
-          </p>
-          {isReservationFull && (
-            <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-center text-sm font-medium text-secondary-foreground">
-              목표 달성! 곧 결제 안내드려요
-            </p>
+          {isReservation ? (
+            <>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                지금은 사전 예약 기간이에요. 결제 준비되면 알림으로 알려드릴게요!
+              </p>
+              {isReservationFull && (
+                <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-center text-sm font-medium text-secondary-foreground">
+                  목표 달성! 곧 결제 안내드려요
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                1인 금액이 아니라, 공동구매 달성 시 목표 물량으로 나눈 금액을 청구해요.
+              </p>
+              {isComplete && status !== 'paid' && (
+                <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-center text-sm font-medium text-secondary-foreground">
+                  목표 물량 달성! 공동구매가 완료되었습니다.
+                </p>
+              )}
+            </>
           )}
         </>
-      ) : (
-        <>
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            1인 금액이 아니라, 공동구매 달성 시 목표 물량으로 나눈 금액을 청구해요.
-          </p>
-          {isComplete && status !== 'paid' && (
-            <p className="mt-3 rounded-xl bg-secondary px-3 py-2 text-center text-sm font-medium text-secondary-foreground">
-              목표 물량 달성! 공동구매가 완료되었습니다.
-            </p>
-          )}
-        </>
-      )}
+      ) : null}
     </div>
   );
 
@@ -446,16 +442,12 @@ export function GroupBuyWidget({ product, children }: Props) {
   if (isPreparing) {
     actionSection = (
       <div className="px-4 pb-4 pt-3">
-        <div className="flex justify-between text-base font-bold">
-          <span>1인 청구 금액</span>
-          <span>{formatPrice(charge)}원</span>
-        </div>
         <button
           type="button"
           disabled
-          className="mt-3 flex h-12 w-full cursor-not-allowed items-center justify-center rounded-2xl bg-muted text-base font-semibold text-muted-foreground opacity-70"
+          className="flex h-12 w-full cursor-not-allowed items-center justify-center rounded-2xl bg-muted text-base font-semibold text-muted-foreground opacity-70"
         >
-          {isReservation ? '사전 예약하기' : '함께 구매하기 (결제)'}
+          준비중
         </button>
       </div>
     );

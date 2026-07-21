@@ -61,63 +61,75 @@ export function GroupBuyCard({ product, compact }: Props) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
-            {formatDiscountPercent(product.discountRate)}% 할인
-          </span>
-          {isPreparing && (
+          {isPreparing ? (
             <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
               준비중
             </span>
-          )}
-          {isPaymentComplete && (
-            <span className="text-micro font-semibold text-muted-foreground">
-              모집 완료
-            </span>
-          )}
-          {isReservationFull && (
-            <span className="text-micro font-semibold text-muted-foreground">
-              예약 마감
-            </span>
+          ) : (
+            <>
+              <span className="rounded-md bg-primary-muted px-1.5 py-0.5 text-micro font-bold text-primary">
+                {formatDiscountPercent(product.discountRate)}% 할인
+              </span>
+              {isPaymentComplete && (
+                <span className="text-micro font-semibold text-muted-foreground">
+                  모집 완료
+                </span>
+              )}
+              {isReservationFull && (
+                <span className="text-micro font-semibold text-muted-foreground">
+                  예약 마감
+                </span>
+              )}
+            </>
           )}
         </div>
         <p className="mt-1.5 line-clamp-2 text-sm font-semibold text-foreground">
           {product.name}
         </p>
-        {isKakaoChannel ? (
-          <p className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-xs">
-            {product.regularPrice > 0 && (
-              <span className="text-muted-foreground line-through">
-                {formatPrice(product.regularPrice)}원
-              </span>
+        {!isPreparing && (
+          <>
+            {isKakaoChannel ? (
+              <p className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-xs">
+                {product.regularPrice > 0 && (
+                  <span className="text-muted-foreground line-through">
+                    {formatPrice(product.regularPrice)}원
+                  </span>
+                )}
+                <span className="font-semibold text-primary">
+                  {formatPrice(product.discountedPrice)}원
+                </span>
+              </p>
+            ) : (
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {formatPrice(charge)}원 / 1인 청구 · 총 {formatPrice(product.discountedPrice)}원
+              </p>
             )}
-            <span className="font-semibold text-primary">
-              {formatPrice(product.discountedPrice)}원
-            </span>
-          </p>
-        ) : (
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {formatPrice(charge)}원 / 1인 청구 · 총 {formatPrice(product.discountedPrice)}원
-          </p>
+            {showProgress ? (
+              <div className="mt-2.5 flex items-center gap-2">
+                <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary">
+                  <Users className="size-3.5" />
+                  {formatGroupBuyProgress(product.currentCount, product.targetCount)}
+                </span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="mt-2.5 flex items-center justify-end">
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+              </div>
+            )}
+          </>
         )}
-        {showProgress ? (
-          <div className="mt-2.5 flex items-center gap-2">
-            <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-[width]"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary">
-              <Users className="size-3.5" />
-              {formatGroupBuyProgress(product.currentCount, product.targetCount)}
-            </span>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-          </div>
-        ) : (
+        {isPreparing ? (
           <div className="mt-2.5 flex items-center justify-end">
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </div>
-        )}
+        ) : null}
       </div>
     </Link>
   );
