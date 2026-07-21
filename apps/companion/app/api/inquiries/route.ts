@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, id: inquiry.id });
   } catch (error) {
-    console.error(error);
+    console.error('[inquiries] Airtable 저장 실패:', error);
     return NextResponse.json({ error: '문의 저장에 실패했습니다.' }, { status: 500 });
   }
 }
